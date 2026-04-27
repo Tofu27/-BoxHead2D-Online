@@ -1,7 +1,8 @@
 import arcade
 import pickle
 from utils.utils import Utils, Setting, Language
-from views.default_view import DefaultView, OptionView, SelectionView
+from views.default_view import DefaultView, OptionView
+from views.start_view import SelectionView
 from core.config import get_root_dir
 
 ROOT_DIR = get_root_dir()
@@ -19,7 +20,7 @@ class BoxHead2d(arcade.Window):
                                      m_volume=2,
                                      r_idx=0,
                                      fullscreen=False,
-                                     lang_idx=0)
+                                     lang_idx=1)
             pickle.dump(settings, open(ROOT_DIR/"data/settings.bin", "wb"))
 
         # 应用加载的设置
@@ -50,25 +51,25 @@ class BoxHead2d(arcade.Window):
     def set_up(self) -> None:
         """加载字体、音效、音乐，并预播放背景音乐（初始暂停）。"""
         # 加载自定义字体
-        arcade.load_font("fonts/FFFFORWA.ttf")
-        arcade.load_font("fonts/Cubic_11_1.013_R.ttf")
+        arcade.load_font("public/fonts/FFFFORWA.ttf")
+        arcade.load_font("public/fonts/Cubic_11_1.013_R.ttf")
 
         # 加载音效（点击、爆炸、刷新、购买、失败、回合开始、游戏结束、胜利）
-        self.button_sound = arcade.Sound("audio/ui_click.wav")
-        self.explosion_sound = arcade.Sound("audio/explosion_2.wav")
+        self.button_sound = arcade.Sound("public/audio/ui_click.wav")
+        self.explosion_sound = arcade.Sound("public/audio/explosion_2.wav")
         self.explosion_sound_cnt: int = 0
-        self.refresh_sound = arcade.Sound("audio/ui_refresh.wav")
-        self.purchase_sound = arcade.Sound("audio/ui_purchase.wav")
-        self.purchase_fail_sound = arcade.Sound("audio/ui_purchase_fail.wav")
-        self.round_start_sound = arcade.Sound("audio/round_start.wav")
-        self.game_over_sound = arcade.Sound("audio/game_over.wav")
-        self.game_win_sound = arcade.Sound("audio/mission_complete.wav")
+        self.refresh_sound = arcade.Sound("public/audio/ui_refresh.wav")
+        self.purchase_sound = arcade.Sound("public/audio/ui_purchase.wav")
+        self.purchase_fail_sound = arcade.Sound("public/audio/ui_purchase_fail.wav")
+        self.round_start_sound = arcade.Sound("public/audio/round_start.wav")
+        self.game_over_sound = arcade.Sound("public/audio/game_over.wav")
+        self.game_win_sound = arcade.Sound("public/audio/mission_complete.wav")
 
         # 加载背景音乐（开始界面和游戏界面）
         self.start_music = arcade.Sound(
-            "audio/the-best-jazz-club-in-new-orleans-164472.wav")
+            "public/audio/the-best-jazz-club-in-new-orleans-164472.wav")
         self.game_music = arcade.Sound(
-            "audio/zapsplat_game_music_medium_action_electronic_techno.wav")
+            "public/audio/zapsplat_game_music_medium_action_electronic_techno.wav")
 
 
         self.default_view = DefaultView

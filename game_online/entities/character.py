@@ -48,7 +48,7 @@ class Character(arcade.Sprite):
 
         # 初始化碰撞精灵（用于物理引擎）
         super().__init__(
-            "graphics/character/CharacterCollider.png",
+            "public/graphics/character/CharacterCollider.png",
             center_x=self.pos.x + self.collider_pos.x,
             center_y=self.pos.y + self.collider_pos.y,
             image_width=20,
@@ -80,7 +80,7 @@ class Character(arcade.Sprite):
         self.body = arcade.Sprite()
        
         self.foot_l = arcade.Sprite(
-            filename="graphics/character/Foot.png",
+            filename="public/graphics/character/Foot.png",
             center_x=self.foot_l_pos.x + self.pos.x,
             center_y=self.foot_l_pos.y + self.pos.x,
             image_width=4,
@@ -88,7 +88,7 @@ class Character(arcade.Sprite):
             scale=1,
         )
         self.foot_r = arcade.Sprite(
-            filename="graphics/character/Foot.png",
+            filename="public/graphics/character/Foot.png",
             center_x=self.foot_r_pos.x + self.pos.x,
             center_y=self.foot_r_pos.y + self.pos.x,
             image_width=4,
@@ -150,7 +150,7 @@ class Character(arcade.Sprite):
 class Player(Character):
     """玩家角色类，支持WASD移动控制和行走动画。"""
 
-    body_texture = arcade.load_texture("graphics/character/Player.png")  # 身体贴图
+    body_texture = arcade.load_texture("public/graphics/character/Player.png")  # 身体贴图
     name = "Nameless"
     description = "Nameless Description"
 
@@ -158,6 +158,9 @@ class Player(Character):
                  physics_engine: arcade.PymunkPhysicsEngine = None) -> None:
         super().__init__(x, y, physics_engine)
 
+        self.uuid = None
+        self.username = None    
+        
         self.speed = 1600       # 移动速度（力的大小）
         self.is_attack = False  # 是否在攻击
         
@@ -193,13 +196,12 @@ class Player(Character):
             super().draw()
             self.current_weapon.draw()
 
-       
+        self.draw_name()
 
     def update(self) -> None:
         """更新玩家状态：先移动部件，再更新走路动画。"""
         super().update()
         self.aim()
-
 
         if self.walking_frames == 0:  
             self.walking_frames = self.walking_frames_max
@@ -229,6 +231,18 @@ class Player(Character):
         # 更新武器状态
         self.current_weapon.update()
 
+    def draw_name(self):
+        # 绘制在角色头顶上方 20 像素处
+        arcade.draw_text(
+            self.username,
+            self.body.center_x + 2,
+            self.body.center_y + 14,
+            arcade.color.GREEN,
+            font_size=10,
+            anchor_x="center",
+            anchor_y="bottom",
+            bold=True
+        )
 
     def move(self) -> None:
         """根据键盘输入向物理引擎施加力，从而移动玩家。"""
@@ -284,7 +298,7 @@ class Player(Character):
 class Rambo(Player):
     "Rambo character."
 
-    body_texture = arcade.load_texture("graphics/character/Rambo.png")
+    body_texture = arcade.load_texture("public/graphics/character/Rambo.png")
     name = "Rambo"
     description = "Rambo Description"
 
@@ -296,7 +310,7 @@ class Rambo(Player):
 class Redbit(Player):
     "Redbit character."
 
-    body_texture = arcade.load_texture("graphics/character/Redbit.png")
+    body_texture = arcade.load_texture("public/graphics/character/Redbit.png")
     name = "Redbit"
     description = "Redbit Description"
 

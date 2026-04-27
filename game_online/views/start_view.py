@@ -3,11 +3,12 @@ from views.base_view import FadingView
 from utils.utils import Utils
 from pyglet.math import Vec2
 from arcade.pymunk_physics_engine import PymunkPhysicsEngine
-from entities.room import StartRoom
+from entities.room import StartRoom, GameRoom0
 from utils.utils import Color, Style
-from entities.character import Player
+from entities.character import Player, Character, Player, Rambo, Redbit
 from views.base_view import CAMERA_SPEED
-
+from views.game_view import GameView
+from network.http import CreatePlayer
 
 # ==================== 开始菜单视图（带物理引擎和UI） ====================
 class StartView(FadingView):
@@ -79,7 +80,7 @@ class StartView(FadingView):
         self.start_sprite_list = arcade.SpriteList()
         self.start_sprite_list.append(
             arcade.Sprite(
-                filename="graphics/ui/MoveGuide.png",
+                filename="public/graphics/ui/MoveGuide.png",
                 scale=0.3,
                 center_x=200,
                 center_y=200
@@ -87,7 +88,7 @@ class StartView(FadingView):
         )
         self.start_sprite_list.append(
             arcade.Sprite(
-                filename="graphics/ui/ShootGuide.png",
+                filename="public/graphics/ui/ShootGuide.png",
                 scale=0.3,
                 center_x=self.w - 200,
                 center_y=200,
@@ -95,7 +96,7 @@ class StartView(FadingView):
         )
         self.start_sprite_list.append(
             arcade.Sprite(
-                filename="graphics/ui/PauseGuide.png",
+                filename="public/graphics/ui/PauseGuide.png",
                 scale=0.3,
                 center_x=200,
                 center_y=self.h - 100,
@@ -103,7 +104,7 @@ class StartView(FadingView):
         )
         self.start_sprite_list.append(
             arcade.Sprite(
-                filename="graphics/ui/WeaponChangeGuide.png",
+                filename="public/graphics/ui/WeaponChangeGuide.png",
                 scale=0.3,
                 center_x=200,
                 center_y=self.h - 200,
@@ -111,7 +112,7 @@ class StartView(FadingView):
         )
         self.start_sprite_list.append(
             arcade.Sprite(
-                filename="graphics/ui/ShopGuide.png",
+                filename="public/graphics/ui/ShopGuide.png",
                 scale=0.3,
                 center_x=self.w - 200,
                 center_y=self.h - 100,
@@ -140,7 +141,7 @@ class StartView(FadingView):
         self.vertical_box = arcade.gui.UIBoxLayout(x=200)
 
         # 标题Logo（作为UI控件）
-        title = arcade.Sprite(filename="graphics/ui/TitleLogo.png", scale=1)
+        title = arcade.Sprite(filename="public/graphics/ui/TitleLogo.png", scale=1)
         title_ui = arcade.gui.UISpriteWidget(sprite=title, width=400, height=200)
         self.vertical_box.add(title_ui.with_space_around(bottom=0))
 
@@ -310,3 +311,273 @@ class StartView(FadingView):
         self.h = height
         self.setup()
         self.camera_sprites.resize(width, height)
+
+
+
+class SelectionView(FadingView):
+    """Character and map selection."""
+        
+
+    def on_show_view(self) -> None:
+        arcade.set_background_color(Color.GROUND_WHITE)
+
+    def setup(self) -> None:
+        self.w = self.window.width
+        self.h = self.window.height
+
+        self.playerUUID = None
+        self.name_list = []
+        self.describe_list = []
+        self.manager = arcade.gui.UIManager()
+        self.manager.enable()
+
+        self.selection_box = arcade.gui.UIBoxLayout(vertical=False)
+        self.rest_box = arcade.gui.UIBoxLayout(vertical=False)
+
+        # 名字输入与联机按钮
+        input_h_box = arcade.gui.UIBoxLayout(vertical=False, space_between=10)
+        self.name_input = arcade.gui.UIInputText(
+            width=200, height=30, text="",
+            font_size=16, text_color=arcade.color.BLACK,
+            border_color=arcade.color.GRAY, caret_color=arcade.color.RED,
+            bg_color=arcade.color.WHITE,
+        )
+        self.confirm_name_button = arcade.gui.UIFlatButton(
+            text="创建玩家", width=120, style=Style.BUTTON_DEFAULT
+        )
+        input_h_box.add(self.name_input)
+        input_h_box.add(self.confirm_name_button)
+
+        # 提示标签
+        self.input_error_label = arcade.gui.UILabel(
+            text="", font_size=14, align="center",
+            width=320, height=20,
+            text_color=(255, 0, 0, 255)
+        )
+        
+        # 垂直布局整合
+        input_v_box = arcade.gui.UIBoxLayout(vertical=True, space_between=5)
+        input_v_box.add(input_h_box)
+        input_v_box.add(self.input_error_label)
+
+        
+        # 绑定事件
+        @self.name_input.event("on_change")
+        def on_name_change(event):
+            if len(event.new_value) > 6:
+                self.name_input.text = event.new_value[:6]
+            self.input_error_label.text = ""
+
+
+        # Characters
+        self.char_sprites = arcade.SpriteList()
+        self.char_list = [
+            Player,
+            Rambo,
+            Redbit,
+        ]
+        self.cur_char_idx = 0
+        self.cur_char = Character(
+            float(self.w/2 - 240), float(self.h/2 + 100))
+
+        self.name_list.append(
+            arcade.Text(
+                text="",
+                start_x=float(self.w/2 - 240),
+                start_y=float(self.h/2 + 20),
+                font_size=12,
+                font_name="Cubic 11",
+                anchor_x="center",
+                align="center",
+                width=120,
+                color=Color.BLACK,
+            )
+        )
+        self.describe_list.append(
+            arcade.Text(
+                text="",
+                start_x=float(self.w/2 - 240),
+                start_y=float(self.h/2 - 10),
+                font_size=12,
+                font_name="Cubic 11",
+                anchor_x="center",
+                align="center",
+                multiline=False,
+                width=240,
+                color=Color.BLACK,
+            )
+        )
+        self.set_character()
+
+
+        # Maps
+        self.map_list = [
+            GameRoom0,
+            # room.GameRoom1,
+            # room.GameRoom2,
+        ]
+        self.cur_map_idx = 0
+        self.cur_map = self.map_list[self.cur_map_idx]
+        self.cur_map_sprite = arcade.Sprite()
+        self.name_list.append(
+            arcade.Text(
+                text="",
+                start_x=float(self.w/2 + 220),
+                start_y=float(self.h/2 - 20),
+                font_size=12,
+                font_name="Cubic 11",
+                anchor_x="center",
+                align="center",
+                width=120,
+                color=Color.BLACK,
+            )
+        )
+        self.set_maps()
+        
+        # Selection buttons
+        character_left_button = arcade.gui.UIFlatButton(
+            text="<", width=60, style=Style.BUTTON_DEFAULT
+        )
+        character_right_button = arcade.gui.UIFlatButton(
+            text=">", width=60, style=Style.BUTTON_DEFAULT
+        )
+        map_left_button = arcade.gui.UIFlatButton(
+            text="<", width=80, style=Style.BUTTON_DEFAULT
+        )
+        map_right_button = arcade.gui.UIFlatButton(
+            text=">", width=80, style=Style.BUTTON_DEFAULT
+        )
+
+        self.selection_box.add(
+            character_left_button.with_space_around(right=20))
+        self.selection_box.add(
+            character_right_button.with_space_around(right=300))
+        self.selection_box.add(map_left_button.with_space_around(right=20))
+        self.selection_box.add(map_right_button.with_space_around(right=0))
+        
+        character_left_button.on_click = self.on_click_last_char
+        character_right_button.on_click = self.on_click_next_char
+
+        # Rest buttons
+        back_button = arcade.gui.UIFlatButton(
+            text=self.window.cur_lang.BACK, width=120, style=Style.BUTTON_DEFAULT
+        )
+        next_button = arcade.gui.UIFlatButton(
+            text=self.window.cur_lang.NEXT, width=120, style=Style.BUTTON_DEFAULT
+        )
+        self.rest_box.add(back_button.with_space_around(right=200))
+        self.rest_box.add(next_button.with_space_around(right=0))
+        back_button.on_click = self.on_click_back
+        next_button.on_click = self.on_click_next
+
+        # Add box layouts
+        self.manager.add(
+            arcade.gui.UIAnchorWidget(
+                align_y=-100, child=self.selection_box)
+        )
+        self.manager.add(arcade.gui.UIAnchorWidget(
+            align_y=-200, child=self.rest_box))
+        
+        # 将垂直布局添加到 manager（替换原有的直接添加 input_h_box）
+        self.manager.add(
+            arcade.gui.UIAnchorWidget(
+                anchor_x="center", anchor_y="top",
+                align_x=20, align_y=-50,
+                child=input_v_box
+            )
+        )
+
+        @self.confirm_name_button.event("on_click")
+        def on_confirm_name(event):
+            name = self.name_input.text.strip()
+            if not name:
+                self.input_error_label.text = "名字不能为空！"
+                self.input_error_label.color = arcade.color.RED
+                return
+            elif len(name) > 6:
+                self.input_error_label.text = "名字长度不能超过6个字符！"
+                self.input_error_label.color = arcade.color.RED
+                return
+            
+            info, err = CreatePlayer(name)
+            if err is not None:
+                self.input_error_label.text = err
+                self.input_error_label.color = arcade.color.RED
+                return
+
+            self.input_error_label.text = f"✓ 名字已设为：{name}"
+            self.input_error_label.color = arcade.color.GREEN
+            self.playerUUID = info['uuid']
+            self.playerName = info['username']
+            arcade.schedule(self.clear_input_message, 3.0)
+        
+    def set_maps(self, idx: int = 0) -> None:
+        self.cur_map_idx += idx
+        self.cur_map_idx %= len(self.map_list)
+        self.cur_map = self.map_list[self.cur_map_idx]
+        self.cur_map_sprite = self.cur_map.layout_sprite
+        self.cur_map_sprite.center_x = float(self.w/2 + 220)
+        self.cur_map_sprite.center_y = float(self.h/2 + 70)
+        self.name_list[1].text = self.window.cur_lang.DescribeText[
+            self.map_list[self.cur_map_idx].name]
+
+    
+    def set_character(self, idx: int = 0) -> None:
+        self.cur_char_idx += idx
+        self.cur_char_idx %= len(self.char_list)
+        self.char_sprites.clear()
+        self.cur_char.body.texture = self.char_list[self.cur_char_idx].body_texture
+        self.char_sprites.extend(self.cur_char.parts)
+        self.name_list[0].text = self.window.cur_lang.DescribeText[
+            self.char_list[self.cur_char_idx].name]
+        self.describe_list[0].text = self.window.cur_lang.DescribeText[
+            self.char_list[self.cur_char_idx].description]
+
+    def clear_input_message(self, delta_time: float):
+        self.input_error_label.text = ""
+        arcade.unschedule(self.clear_input_message)
+
+    def on_draw(self):
+        self.clear()
+        self.manager.draw()
+        self.char_sprites.draw()
+        self.cur_map_sprite.draw()
+        for name in self.name_list:
+            name.draw()
+        for des in self.describe_list:
+            des.draw()
+
+            
+    def on_update(self, delta_time: float):
+        self.cur_char.update()
+
+
+    def on_click_last_char(self, event) -> None:
+        self.set_character(-1)
+        self.window.play_button_sound()
+
+    def on_click_next_char(self, event) -> None:
+        self.set_character(1)
+        self.window.play_button_sound()
+
+    def on_click_back(self, event) -> None:
+        Utils.clear_ui_manager(self.manager)
+        self.window.start_view.setup()
+        self.window.start_view.resize_camera(
+            self.window.width, self.window.height)
+        self.window.show_view(self.window.start_view)
+        self.window.play_button_sound()
+
+    def on_click_next(self, event) -> None:
+        if not self.playerUUID:
+            self.input_error_label.text = "需要先创建玩家"
+            self.input_error_label.color = arcade.color.RED
+            arcade.schedule(self.clear_input_message, 3.0)
+            return
+
+        Utils.clear_ui_manager(self.manager)
+        self.window.game_view = GameView()
+        self.window.game_view.setup(
+            self.char_list[self.cur_char_idx], self.cur_map)
+        self.window.show_view(self.window.game_view)
+        self.window.play_button_sound()

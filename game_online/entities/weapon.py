@@ -9,7 +9,7 @@ from pyglet.math import Vec2
 class Bullet(arcade.Sprite):
     """Bullet base class."""
 
-    def __init__(self, filename="graphics/weapon/Bullet.png",
+    def __init__(self, filename="public/graphics/weapon/Bullet.png",
                  width=6,
                  height=6,
                  scale=1) -> None:
@@ -32,7 +32,7 @@ class Weapon(arcade.Sprite):
     """Weapon base class."""
 
     def __init__(
-        self, weapon_name: str = "graphics/weapon/Pistol.png", x: float = 0, y: float = 0
+        self, weapon_name: str = "public/graphics/weapon/Pistol.png", x: float = 0, y: float = 0
     ) -> None:
         """武器初始化"""
 
@@ -62,7 +62,7 @@ class Weapon(arcade.Sprite):
             image_height=10,
         )
         
-        self.sound = arcade.Sound("audio/wpn_fire_usp45.wav")
+        self.sound = arcade.Sound("public/audio/wpn_fire_usp45.wav")
         self.bullet = Bullet
 
 

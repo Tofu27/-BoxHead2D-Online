@@ -30,7 +30,7 @@ class WallCorner(Wall):
 
     def __init__(self, x: float = 0, y: float = 0) -> None:
         super().__init__(x, y)
-        self.texture = arcade.load_texture("graphics/room/WallCorner.png")
+        self.texture = arcade.load_texture("public/graphics/room/WallCorner.png")
         # 阴影向下、向左偏移3像素
         self.shadow = arcade.Sprite(
             center_x=self.pos.x - 3,
@@ -46,7 +46,7 @@ class WallSideHorizontal(Wall):
 
     def __init__(self, x: float = 0, y: float = 0) -> None:
         super().__init__(x, y)
-        self.texture = arcade.load_texture("graphics/room/WallSide.png")
+        self.texture = arcade.load_texture("public/graphics/room/WallSide.png")
         self.shadow = arcade.Sprite(
             center_x=self.pos.x,
             center_y=self.pos.y - 3,
@@ -61,7 +61,7 @@ class WallSideVertical(Wall):
 
     def __init__(self, x: float = 0, y: float = 0) -> None:
         super().__init__(x, y)
-        self.texture = arcade.load_texture("graphics/room/WallSide.png")
+        self.texture = arcade.load_texture("public/graphics/room/WallSide.png")
         self.angle = -90   # 旋转90度使其垂直
         self.shadow = arcade.Sprite(
             center_x=self.pos.x - 3,
@@ -152,7 +152,7 @@ class StartRoom(Room):
 class GameRoom0(Room):
     """Game room No. 0"""
 
-    layout_sprite = arcade.Sprite("graphics/room/GameRoom0.png")
+    layout_sprite = arcade.Sprite("public/graphics/room/GameRoom0.png")
     name = "Blank room"
 
     

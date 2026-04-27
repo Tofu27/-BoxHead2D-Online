@@ -19,7 +19,7 @@ class GameView(FadingView):
         self.mouse_x = None
         self.mouse_y = None
         self.mouse_pos = Vec2(0, 0)
-        self.mouse_sprite = arcade.Sprite(ROOT_DIR/"graphics/ui/Cursor.png")
+        self.mouse_sprite = arcade.Sprite("public/graphics/ui/Cursor.png")
         self.physics_engine = None
         self.manager = None
 
@@ -40,9 +40,11 @@ class GameView(FadingView):
     def setup(self, player: Player, map: Room) -> None:
         """Set up the game and initialize the variables."""
 
+        print("玩家信息", player)
+        print("地图信息", map)
+
         # Play game BGM
         self.window.play_game_music(1)
-
 
         # Create the physics engine
         damping = 0.01
