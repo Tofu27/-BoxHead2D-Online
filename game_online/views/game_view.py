@@ -6,17 +6,14 @@ from arcade.pymunk_physics_engine import PymunkPhysicsEngine
 from entities.character import Player, Rambo, Redbit
 from entities.room import Room
 from views.base_view import CAMERA_SPEED
-from core.config import get_root_dir
 
 import time
 import threading
 from network.wsClient import GameWebSocketClient
 
 
-ROOT_DIR = get_root_dir()
-
 class GameView(FadingView):
-    """Main game view."""
+    """主游戏视图。"""
 
     def __init__(self):
         super().__init__()
@@ -52,7 +49,11 @@ class GameView(FadingView):
         self.camera_gui = arcade.Camera(self.w, self.h)
 
     def setup(self, player_meta: any, map: Room) -> None:
-        """Set up the game and initialize the variables."""
+        """
+        初始化游戏。
+        player_meta 应包含: player (类), uuid, name
+        room_class 是房间类（可调用返回 Room 实例）
+        """
 
         player:Player = player_meta['player']
         
@@ -78,7 +79,6 @@ class GameView(FadingView):
         damping = 0.01
         gravity = (0, 0)
         self.physics_engine = PymunkPhysicsEngine(gravity, damping)
-
         
         # Game room setup
         self.room = map()
@@ -88,10 +88,8 @@ class GameView(FadingView):
             float(self.room.width / 2), float(self.room.height / 2), self.physics_engine)
         
         self.player.register_mouse_pos(self.mouse_pos)
-        self.player.setGameInfo({
-            "uuid": player_meta['uuid'],
-            "username": player_meta['name']
-        })
+        self.player.uuid = player_meta['uuid']
+        self.player.username = player_meta['name']
 
 
         # Set up the shop
@@ -114,12 +112,11 @@ class GameView(FadingView):
 
 
     def on_ws_game_state(self, players_list):
-        """服务器推送所有玩家状态"""
-        """子线程回调，只存储数据"""
+        """服务器推送所有玩家状态（子线程回调，仅存储数据）"""
 
         now = time.time()
         if now - self._last_ws_print_time >= self._ws_print_interval:
-            print("ws消息 (节流后):", players_list)
+            print("ws消息 (节流):", players_list)
             self._last_ws_print_time = now
             
         with self._pending_lock:
@@ -144,7 +141,6 @@ class GameView(FadingView):
     def on_draw(self) -> None:
         self.clear()
         self.camera_sprites.use() # 世界相机，绘制场景、玩家、敌人
-
         self.room.draw_ground()
         self.room.draw_walls()
         self.player.draw()
@@ -155,7 +151,7 @@ class GameView(FadingView):
 
         self.camera_gui.use() # 切换 GUi相机，绘制准许，信息UI
 
-        # Mouse cursor
+        # 鼠标准星
         if self.mouse_x and self.mouse_y:
             self.mouse_sprite.draw()
 
@@ -167,7 +163,6 @@ class GameView(FadingView):
                 self._pending_players = []
 
         self.physics_engine.step()
-        # Update player
         self.player.update()
         self.scroll_to_player()
 
@@ -215,6 +210,7 @@ class GameView(FadingView):
         # 移除离开的玩家
         for pid in current_ids - received_ids:
             if pid in self.other_players:
+                self.physics_engine.remove_sprite(self.other_players[pid]["player"])
                 del self.other_players[pid]
 
     def _create_other_player(self, char_type: str, x: float = 0, y: float = 0) -> Player:
@@ -231,13 +227,24 @@ class GameView(FadingView):
         instance.center_x = x
         instance.center_y = y
         instance.is_remote = True
-        # 其他玩家不需要本地控制移动，但需要能够绘制
+        
+        # 手动添加为运动学物体，只参与碰撞，不主动移动
+        self.physics_engine.add_sprite(
+            instance,
+            friction=0,
+            moment_of_inertia=PymunkPhysicsEngine.MOMENT_INF,
+            damping=0,
+            collision_type="player",
+            elasticity=0.1,
+            body_type=PymunkPhysicsEngine.KINEMATIC,   # 关键！
+        )
+
         return instance
 
 
     def _send_status_if_needed(self):
         now = time.time()
-        if now-self.last_send_time>=self.send_interval:
+        if now - self.last_send_time >= self.send_interval:
             self.ws_client.send_json({
                 "type": "player_game_status", 
                 "x": self.player.pos.x, 
@@ -256,8 +263,16 @@ class GameView(FadingView):
             data["current_x"] += (data["target_x"] - data["current_x"]) * 0.2
             data["current_y"] += (data["target_y"] - data["current_y"]) * 0.2
             player_obj = data["player"]
-            player_obj.center_x = data["current_x"]
-            player_obj.center_y = data["current_y"]
+
+            # player_obj.center_x = data["current_x"]
+            # player_obj.center_y = data["current_y"]
+
+            # 🔥 关键：用物理引擎方法移动整个物体（精灵+碰撞体）
+            self.physics_engine.set_position(
+                player_obj,
+                (data["current_x"], data["current_y"])
+            )
+
             # 调用 update()
             player_obj.update()
 
@@ -290,8 +305,8 @@ class GameView(FadingView):
         self.mouse_y = y
         self.mouse_pos.x = self.mouse_x + self.camera_sprites.position.x
         self.mouse_pos.y = self.mouse_y + self.camera_sprites.position.y
-        self.mouse_sprite.center_x = self.mouse_x
-        self.mouse_sprite.center_y = self.mouse_y
+        self.mouse_sprite.center_x = x
+        self.mouse_sprite.center_y = y
 
     def scroll_to_player(self) -> None:
         x = self.player.pos.x - float(self.w / 2)

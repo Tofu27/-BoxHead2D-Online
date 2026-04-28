@@ -137,6 +137,12 @@ func (g *BoxHead) HandleCreatePlayer(w http.ResponseWriter, r *http.Request) {
 	// 重名检查
 	for _, p := range g.players {
 		if p.Name == name {
+
+			if p.Connected {
+				writeError(w, http.StatusConflict, "玩家已经在游戏中...")
+				return
+			}
+
 			existingUUID := p.UUID
 			existingName := p.Name
 			g.mu.Unlock()

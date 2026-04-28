@@ -32,6 +32,7 @@ class Character(arcade.Sprite):
     def __init__(self, x: float = 0, y: float = 0,
                  physics_engine: arcade.PymunkPhysicsEngine = None) -> None:
         
+        self.health = 100               # 生命值
         self.is_walking = False         # 是否在行走
         self.speed = 800
         self.cd = int(0)
@@ -83,7 +84,7 @@ class Character(arcade.Sprite):
         self.foot_l = arcade.Sprite(
             filename="public/graphics/character/Foot.png",
             center_x=self.foot_l_pos.x + self.pos.x,
-            center_y=self.foot_l_pos.y + self.pos.x,
+            center_y=self.foot_l_pos.y + self.pos.y,
             image_width=4,
             image_height=4,
             scale=1,
@@ -91,15 +92,14 @@ class Character(arcade.Sprite):
         self.foot_r = arcade.Sprite(
             filename="public/graphics/character/Foot.png",
             center_x=self.foot_r_pos.x + self.pos.x,
-            center_y=self.foot_r_pos.y + self.pos.x,
+            center_y=self.foot_r_pos.y + self.pos.y,
             image_width=4,
             image_height=4,
             scale=1,
         )
 
         # 受伤闪红效果精灵（初始透明）
-        self.damage_sprite = arcade.SpriteSolidColor(20, 24,
-                                Color.RED_TRANSPARENT)
+        self.damage_sprite = arcade.SpriteSolidColor(20, 24, Color.RED_TRANSPARENT)
         self.damage_sprite.alpha = 0
 
         # 将所有可视部件放入一个列表，方便批量绘制
@@ -162,12 +162,12 @@ class Player(Character):
 
         self.uuid = None
         self.username = None
-        self.is_remote = False  # 是否是网络角色（默认本地角色）
+        self.is_remote = False       # 是否是网络角色（默认本地角色）
         self.remote_mouse_pos = None # 远程角色的鼠标坐标
         
-        self.char_type = "Player" # 类型
-        self.speed = 1600       # 移动速度（力的大小）
-        self.is_attack = False  # 是否在攻击
+        self.char_type = "Player"   # 类型
+        self.speed = 1600           # 移动速度（力的大小）
+        self.is_attack = False      # 是否在攻击
         
         self.energy = int(0)
 
@@ -186,7 +186,7 @@ class Player(Character):
         self.weapons = []
         self.weapon_index = 0
         pistol = Weapon(x=self.pos.x + self.weapon_pos.x,
-                               y=self.pos.y + self.weapon_pos.y)
+                        y=self.pos.y + self.weapon_pos.y)
         self.add_weapon(pistol)
         self.current_weapon = self.weapons[self.weapon_index]
         self.cd_max = self.current_weapon.cd_max
@@ -289,7 +289,6 @@ class Player(Character):
 
         
     def aim(self) -> None:
-
         mouse_pos = self.remote_mouse_pos if self.is_remote else self.mouse_pos
         if mouse_pos is None:
             return 
@@ -301,20 +300,15 @@ class Player(Character):
     def attack(self) -> arcade.SpriteList:
         return self.current_weapon.get_bullet()
     
-    
     def get_damage(self, damage: int) -> None:
         self.health = max(self.health - damage, 0)
     
     def get_energy(self, energy: int) -> None:
         self.energy += energy
 
-    def setGameInfo(self, info: any) -> None:
-        self.username = info['username']
-        self.uuid = info['uuid']
-    
     
 class Rambo(Player):
-    "Rambo character."
+    """Rambo 角色：受伤时获得能量。"""
 
     body_texture = arcade.load_texture("public/graphics/character/Rambo.png")
     name = "Rambo"
@@ -331,7 +325,7 @@ class Rambo(Player):
 
 
 class Redbit(Player):
-    "Redbit character."
+    """Redbit 角色：消耗能量进行冲刺。"""
     
     body_texture = arcade.load_texture("public/graphics/character/Redbit.png")
     name = "Redbit"
