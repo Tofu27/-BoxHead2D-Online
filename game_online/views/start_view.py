@@ -121,15 +121,15 @@ class StartView(FadingView):
 
         # 作者信息文字（带阴影效果）
         self.about_text = arcade.Text("Created by Unchain.",
-                                      self.w - 600,
-                                      120,
+                                      self.w / 2,
+                                      90,
                                       color=Color.DARK_GRAY,
                                       font_size=14,
                                       font_name="Cubic 11",
                                       anchor_x="center")
         self.about_text_shadow = arcade.Text("Created by Unchain.",
-                                             self.w - 602,
-                                             120,
+                                             self.w /2 -2,
+                                             90,
                                              color=Color.LIGHT_GRAY,
                                              font_size=14,
                                              font_name="Cubic 11",
@@ -326,6 +326,8 @@ class SelectionView(FadingView):
         self.h = self.window.height
 
         self.playerUUID = None
+        self.playerName = None
+
         self.name_list = []
         self.describe_list = []
         self.manager = arcade.gui.UIManager()
@@ -575,9 +577,15 @@ class SelectionView(FadingView):
             arcade.schedule(self.clear_input_message, 3.0)
             return
 
+        player_meta = {
+            "uuid": self.playerUUID,
+            "name": self.playerName,
+            "player": self.char_list[self.cur_char_idx],
+        }
+
         Utils.clear_ui_manager(self.manager)
         self.window.game_view = GameView()
         self.window.game_view.setup(
-            self.char_list[self.cur_char_idx], self.cur_map)
+            player_meta, self.cur_map)
         self.window.show_view(self.window.game_view)
         self.window.play_button_sound()

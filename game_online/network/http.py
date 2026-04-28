@@ -23,7 +23,7 @@ def CreatePlayer(username):
             return None, result["error"]
 
         print(f"✅ 获取玩家信息成功：{ result }")
-        return result, None
+        return result['data'], None
 
     except requests.exceptions.RequestException as err:
         print(f"❌ 网络请求失败：{err}")

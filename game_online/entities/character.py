@@ -150,16 +150,18 @@ class Character(arcade.Sprite):
 class Player(Character):
     """玩家角色类，支持WASD移动控制和行走动画。"""
 
+    char_type = "Player"   # 新增
     body_texture = arcade.load_texture("public/graphics/character/Player.png")  # 身体贴图
     name = "Nameless"
     description = "Nameless Description"
 
     def __init__(self, x: float = 0, y: float = 0,
-                 physics_engine: arcade.PymunkPhysicsEngine = None) -> None:
+                physics_engine: arcade.PymunkPhysicsEngine = None,
+            ) -> None:
         super().__init__(x, y, physics_engine)
 
         self.uuid = None
-        self.username = None    
+        self.username = None
         
         self.speed = 1600       # 移动速度（力的大小）
         self.is_attack = False  # 是否在攻击
@@ -196,7 +198,8 @@ class Player(Character):
             super().draw()
             self.current_weapon.draw()
 
-        self.draw_name()
+        if self.username:
+            self.draw_name()
 
     def update(self) -> None:
         """更新玩家状态：先移动部件，再更新走路动画。"""
@@ -294,10 +297,15 @@ class Player(Character):
     def get_energy(self, energy: int) -> None:
         self.energy += energy
 
+    def setGameInfo(self, info: any) -> None:
+        self.username = info['username']
+        self.uuid = info['uuid']
+    
     
 class Rambo(Player):
     "Rambo character."
 
+    char_type = "Rambo"
     body_texture = arcade.load_texture("public/graphics/character/Rambo.png")
     name = "Rambo"
     description = "Rambo Description"
@@ -310,6 +318,7 @@ class Rambo(Player):
 class Redbit(Player):
     "Redbit character."
 
+    char_type = "Redbit"
     body_texture = arcade.load_texture("public/graphics/character/Redbit.png")
     name = "Redbit"
     description = "Redbit Description"
