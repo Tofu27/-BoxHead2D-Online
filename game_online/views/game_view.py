@@ -196,7 +196,6 @@ class GameView(FadingView):
                 instance.username = p.get("name", "")
                 self.other_players[pid] = {
                     "player": instance,
-                    "name": p.get("name", ""),
                     "target_x": p["x"],
                     "target_y": p["y"],
                     "current_x": p["x"],
@@ -204,20 +203,19 @@ class GameView(FadingView):
                 }
             else:
                 # 已存在玩家：更新目标位置
-                self.other_players[pid]["target_x"] = x
-                self.other_players[pid]["target_y"] = y
-                self.other_players[pid]["name"] = p.get("name", "")
-                self.other_players[pid]["player"].username = p.get("name", "")
-                self.other_players[pid]["player"].is_walking = p.get("is_walking", "")
-                pos = p.get("mouse_pos", "")
-                self.other_players[pid]["player"].remote_mouse_pos = Vec2(pos['x'], pos['y'])
+                data = self.other_players[pid]
+                data["target_x"] = x
+                data["target_y"] = y
+                player = data["player"]
+                player.username = p.get("name", "")
+                player.is_walking = p.get("is_walking", False)
+                mouse_pos = p.get("mouse_pos", {})
+                player.remote_mouse_pos = Vec2(mouse_pos.get('x', 0), mouse_pos.get('y', 0))
 
         # 移除离开的玩家
         for pid in current_ids - received_ids:
             if pid in self.other_players:
-                self.other_players[pid]["sprite"].remove_from_sprite_lists()
                 del self.other_players[pid]
-
 
     def _create_other_player(self, char_type: str, x: float = 0, y: float = 0) -> Player:
         """根据角色类型创建其他玩家的完整角色实例（无物理引擎）"""
