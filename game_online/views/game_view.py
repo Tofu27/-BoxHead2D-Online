@@ -150,12 +150,8 @@ class GameView(FadingView):
         self.player.draw()
 
         # 绘制其他玩家
-        for pid, data in self.other_players.items():
-            data["sprite"].draw()
-            arcade.draw_text(data["name"],
-                data["sprite"].center_x,
-                data["sprite"].center_y + 30,
-                arcade.color.WHITE, 12, anchor_x="center")
+        for data in self.other_players.values():
+            data["player"].draw()  # 自动绘制身体、脚、武器等
 
         self.camera_gui.use() # 切换 GUi相机，绘制准许，信息UI
 
@@ -176,8 +172,8 @@ class GameView(FadingView):
         self.scroll_to_player()
 
         
-        # 发送本地玩家坐标给服务器
-        self._send_move_if_needed()
+        # 发送本地玩家状态给服务器
+        self._send_status_if_needed()
         # 平滑更新其他玩家的显示位置
         self._update_other_players_positions()
 
@@ -185,18 +181,21 @@ class GameView(FadingView):
         """在主线程中安全地更新其他玩家精灵"""
         current_ids = set(self.other_players.keys())
         received_ids = set()
-
+    
         for p in players_list:
             pid = p["uuid"]
             if pid == self.player.uuid:   # 跳过自己
                 continue
+
             received_ids.add(pid)
+            x, y = p["x"], p["y"]
 
             if pid not in self.other_players:
-                # 新玩家：根据 char_type 创建精灵
-                sprite = self._create_player_sprite(p.get("char_type", "Player"))
+                # 新玩家
+                instance = self._create_other_player(p.get("char_type", "Player"), x, y)
+                instance.username = p.get("name", "")
                 self.other_players[pid] = {
-                    "sprite": sprite,
+                    "player": instance,
                     "name": p.get("name", ""),
                     "target_x": p["x"],
                     "target_y": p["y"],
@@ -205,9 +204,11 @@ class GameView(FadingView):
                 }
             else:
                 # 已存在玩家：更新目标位置
-                self.other_players[pid]["target_x"] = p["x"]
-                self.other_players[pid]["target_y"] = p["y"]
-                self.other_players[pid]["name"] = p["name"]
+                self.other_players[pid]["target_x"] = x
+                self.other_players[pid]["target_y"] = y
+                self.other_players[pid]["name"] = p.get("name", "")
+                self.other_players[pid]["player"].username = p.get("name", "")
+                self.other_players[pid]["player"].is_walking  = p.get("is_walking", "")
 
         # 移除离开的玩家
         for pid in current_ids - received_ids:
@@ -216,35 +217,48 @@ class GameView(FadingView):
                 del self.other_players[pid]
 
 
-    def _create_player_sprite(self, char_type: str) -> arcade.Sprite:
-        """根据角色类型创建精灵（仅用于其他玩家）"""
-        # 简易实现：你可以使用更复杂的动画精灵，这里只是示例
-        if char_type == "Player":
-            texture = "public/graphics/character/Player.png"
-        elif char_type == "Rambo":
-            texture = "public/graphics/character/Rambo.png"
-        elif char_type == "Redbit":
-            texture = "public/graphics/character/Redbit.png"
-        else:
-            texture = ":resources:images/enemies/slimeBlue.png"
-        sprite = arcade.Sprite(texture, scale=1.0)
-        return sprite
+    def _create_other_player(self, char_type: str, x: float = 0, y: float = 0) -> Player:
+        """根据角色类型创建其他玩家的完整角色实例（无物理引擎）"""
+        class_map = {
+            "Player": Player,
+            "Rambo": Rambo,
+            "Redbit": Redbit,
+        }
+        print("创建角色 uuid, char_type", self.player.uuid, char_type)
+        cls = class_map.get(char_type, Player)
+        # 物理引擎传 None，避免不必要的物理模拟
+        instance = cls(x, y, physics_engine=None)
+        
+        print("实例化后", instance.char_type)
+        # 可选：设置初始位置（稍后会通过 target_x/target_y 覆盖）
+        instance.center_x = x
+        instance.center_y = y
+        instance.is_remote = True
+        # 其他玩家不需要本地控制移动，但需要能够绘制
+        return instance
 
 
-    def _send_move_if_needed(self):
+    def _send_status_if_needed(self):
         now = time.time()
         if now-self.last_send_time>=self.send_interval:
-            self.ws_client.send_json({"type": "move", "x": self.player.pos.x, "y": self.player.pos.y})
+            self.ws_client.send_json({
+                "type": "player_game_status", 
+                "x": self.player.pos.x, 
+                "y": self.player.pos.y,
+                "is_walking": self.player.is_walking
+            })
             self.last_send_time = now
 
     def _update_other_players_positions(self):
-        """使用线性插值平滑移动到目标位置，避免抖动"""
         for data in self.other_players.values():
-            # 插值系数 0.2 可根据网络质量调整
+            # 线性插值
             data["current_x"] += (data["target_x"] - data["current_x"]) * 0.2
             data["current_y"] += (data["target_y"] - data["current_y"]) * 0.2
-            data["sprite"].center_x = data["current_x"]
-            data["sprite"].center_y = data["current_y"]
+            player_obj = data["player"]
+            player_obj.center_x = data["current_x"]
+            player_obj.center_y = data["current_y"]
+            # 调用 update()
+            player_obj.update()
 
     def on_key_press(self, key, modifiers) -> None:
         """Called whenever a key is pressed."""

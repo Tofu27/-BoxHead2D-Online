@@ -56,7 +56,8 @@ class Character(arcade.Sprite):
             scale=1,
         )
 
-        self.register_physics_engine(physics_engine)    # 注册到物理引擎
+        if physics_engine is not None:
+            self.register_physics_engine(physics_engine)    # 注册到物理引擎
 
         # 阴影精灵（半透明圆形）
         self.shadow = arcade.Sprite(
@@ -150,7 +151,6 @@ class Character(arcade.Sprite):
 class Player(Character):
     """玩家角色类，支持WASD移动控制和行走动画。"""
 
-    char_type = "Player"   # 新增
     body_texture = arcade.load_texture("public/graphics/character/Player.png")  # 身体贴图
     name = "Nameless"
     description = "Nameless Description"
@@ -162,7 +162,9 @@ class Player(Character):
 
         self.uuid = None
         self.username = None
+        self.is_remote = False  # 是否是网络角色（默认本地角色）
         
+        self.char_type = "Player" # 类型
         self.speed = 1600       # 移动速度（力的大小）
         self.is_attack = False  # 是否在攻击
         
@@ -204,7 +206,9 @@ class Player(Character):
     def update(self) -> None:
         """更新玩家状态：先移动部件，再更新走路动画。"""
         super().update()
-        self.aim()
+
+        if self.is_remote == False:
+            self.aim()
 
         if self.walking_frames == 0:  
             self.walking_frames = self.walking_frames_max
@@ -250,25 +254,27 @@ class Player(Character):
     def move(self) -> None:
         """根据键盘输入向物理引擎施加力，从而移动玩家。"""
 
-        force = Vec2(0, 0)
-        if self.move_up and not self.move_down:
-            force.y = 1
-        elif self.move_down and not self.move_up:
-            force.y = -1
-        if self.move_left and not self.move_right:
-            force.x = -1
-        elif self.move_right and not self.move_left:
-            force.x = 1
+        # 本地玩家就需要做引擎处理
+        if self.is_remote == False:
+            force = Vec2(0, 0)
+            if self.move_up and not self.move_down:
+                force.y = 1
+            elif self.move_down and not self.move_up:
+                force.y = -1
+            if self.move_left and not self.move_right:
+                force.x = -1
+            elif self.move_right and not self.move_left:
+                force.x = 1
 
-        # 归一化后乘以速度，得到最终作用力
-        force = force.normalize().scale(self.speed)
-        self.physics_engines[0].apply_force(self, (force.x, force.y))
-        
-        # 根据是否有力作用设置行走标志
-        if force.mag != 0:
-            self.is_walking = True
-        else:
-            self.is_walking = False
+            # 归一化后乘以速度，得到最终作用力
+            force = force.normalize().scale(self.speed)
+            self.physics_engines[0].apply_force(self, (force.x, force.y))
+            
+            # 根据是否有力作用设置行走标志
+            if force.mag != 0:
+                self.is_walking = True
+            else:
+                self.is_walking = False
 
         # 调用父类的move方法更新各部件位置
         super().move()
@@ -305,10 +311,14 @@ class Player(Character):
 class Rambo(Player):
     "Rambo character."
 
-    char_type = "Rambo"
     body_texture = arcade.load_texture("public/graphics/character/Rambo.png")
     name = "Rambo"
     description = "Rambo Description"
+
+    def __init__(self, x = 0, y = 0, physics_engine = None):
+        super().__init__(x, y, physics_engine)
+        self.char_type = "Rambo"
+
 
     def get_damage(self, damage: int) -> None:
         super().get_damage(damage)
@@ -317,11 +327,14 @@ class Rambo(Player):
 
 class Redbit(Player):
     "Redbit character."
-
-    char_type = "Redbit"
+    
     body_texture = arcade.load_texture("public/graphics/character/Redbit.png")
     name = "Redbit"
     description = "Redbit Description"
+
+    def __init__(self, x = 0, y = 0, physics_engine = None):
+        super().__init__(x, y, physics_engine)
+        self.char_type = "Redbit"
 
     def use_skill(self) -> None:
         # Dashing

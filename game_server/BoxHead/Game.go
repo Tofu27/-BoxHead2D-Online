@@ -19,26 +19,36 @@ type Player struct {
 	CharacterType string  `json:"character_type"`
 	X             float64 `json:"x"`
 	Y             float64 `json:"y"`
+	IsWalking     bool    `json:"is_walking"`
 	Conn          *websocket.Conn
+
+	Send        chan []byte   // 用于串行化 WebSocket 写操作
+	Done        chan struct{} // 通知 writePump 退出
+	cleanupOnce sync.Once     // 确保清理逻辑只执行一次
+
+	CreatedAt time.Time // 玩家创建时间
+	Connected bool      // 是否已成功建立 WebSocket 连接
 }
 
 // BoxHead 游戏核心结构
 type BoxHead struct {
-	players map[string]*Player // key: UUID
+	players map[string]*Player
 	mu      sync.RWMutex
 
-	// 广播频率
 	tickerInterval time.Duration
 	stopChan       chan struct{}
 }
 
-// 配置常量
 const (
 	DefaultTickerInterval = 50 * time.Millisecond // 20Hz
 	WriteWait             = 10 * time.Second
-	PongWait              = 60 * time.Second
-	PingPeriod            = (PongWait * 9) / 10
+	PongWait              = 60 * time.Second    // 等待客户端 Pong 的最长时间
+	PingPeriod            = (PongWait * 9) / 10 // 发送 Ping 的间隔
 	MaxMessageSize        = 512
+
+	// 僵尸玩家清理配置
+	CleanZombieInterval = 30 * time.Second // 清理检查间隔
+	MaxCreateAge        = 2 * time.Minute  // 创建后超过此时间仍未连接视为僵尸
 )
 
 var upgrader = websocket.Upgrader{
@@ -47,60 +57,94 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
+// InitGame 初始化游戏
 func InitGame() *BoxHead {
 	g := &BoxHead{
 		players:        make(map[string]*Player),
 		tickerInterval: DefaultTickerInterval,
 		stopChan:       make(chan struct{}),
 	}
-
 	go g.broadcaster()
+	go g.periodicPlayerListPrinter()
+	go g.zombieCleaner() // 启动僵尸玩家清理协程
 	return g
 }
 
-// Stop 停止广播
+// Stop 停止所有后台协程
 func (g *BoxHead) Stop() {
 	close(g.stopChan)
 }
 
+// periodicPlayerListPrinter 每隔 30 秒打印当前玩家列表
+func (g *BoxHead) periodicPlayerListPrinter() {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			g.printPlayerList()
+		case <-g.stopChan:
+			return
+		}
+	}
+}
+
+func (g *BoxHead) printPlayerList() {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	if len(g.players) == 0 {
+		log.Println("当前在线玩家：无")
+		return
+	}
+	log.Printf("当前在线玩家 (%d)：", len(g.players))
+	for _, p := range g.players {
+		connStatus := "未连接"
+		if p.Connected {
+			connStatus = "已连接"
+		}
+		log.Printf("  - UUID=%s, 名称=%s, 角色=%s, 位置=(%.1f, %.1f), 状态=%s",
+			p.UUID, p.Name, p.CharacterType, p.X, p.Y, connStatus)
+	}
+}
+
+// HandleCreatePlayer 处理创建玩家 HTTP 请求
 func (g *BoxHead) HandleCreatePlayer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8000")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS") // Allow GET and preflight OPTIONS
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type") // Allow Content-Type header
+	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
-	if r.Method == "OPTIONS" {
+	if r.Method == http.MethodOptions {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-
 	w.Header().Set("Content-Type", "application/json")
 
-	log.Println("HandleCreatePlayer: 接受到一条玩家创建请求")
+	log.Println("HandleCreatePlayer: 接收到一条玩家创建请求")
 
 	name := strings.TrimSpace(r.URL.Query().Get("name"))
 	if name == "" {
 		writeError(w, http.StatusBadRequest, "name 参数缺失")
 		return
 	}
-
 	if len(name) > 12 {
 		writeError(w, http.StatusConflict, "名字长度不得超过12字符")
 		return
 	}
 
 	g.mu.Lock()
-	defer g.mu.Unlock()
 
 	// 检查重名
 	for _, p := range g.players {
 		if p.Name == name {
-			// writeError(w, http.StatusConflict, "该玩家已经存在")
-			// return
+			existingUUID := p.UUID
+			existingName := p.Name
+			g.mu.Unlock()
+
 			resp := map[string]interface{}{
 				"code": 200,
 				"data": map[string]interface{}{
-					"uuid":     p.UUID,
-					"username": p.Name,
+					"uuid":     existingUUID,
+					"username": existingName,
 				},
 				"msg": "玩家已经存在",
 			}
@@ -110,13 +154,17 @@ func (g *BoxHead) HandleCreatePlayer(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// 创建新玩家
 	player := &Player{
-		UUID: uuid.New().String(),
-		Name: name,
-		X:    0, // 默认出生点
-		Y:    0,
+		UUID:      uuid.New().String(),
+		Name:      name,
+		X:         0,
+		Y:         0,
+		CreatedAt: time.Now(), // 记录创建时间
+		Connected: false,
 	}
 	g.players[player.UUID] = player
+	g.mu.Unlock()
 
 	resp := map[string]interface{}{
 		"code": 200,
@@ -128,6 +176,7 @@ func (g *BoxHead) HandleCreatePlayer(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(resp)
 	log.Printf("玩家创建成功: %s (%s)", player.Name, player.UUID)
+	g.printPlayerList()
 }
 
 // HandleWebSocket 处理 WebSocket 连接
@@ -138,11 +187,9 @@ func (g *BoxHead) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 验证玩家是否存在并获取指针
 	g.mu.RLock()
 	player, exists := g.players[uuidParam]
 	g.mu.RUnlock()
-
 	if !exists {
 		http.Error(w, "player not found", http.StatusForbidden)
 		return
@@ -154,13 +201,18 @@ func (g *BoxHead) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 如果该玩家已有连接，先关闭旧的
+	// 关闭旧连接（如果存在）
 	if player.Conn != nil {
 		player.Conn.Close()
 	}
-	player.Conn = conn
 
-	// 配置连接参数
+	player.Conn = conn
+	player.Connected = true // 标记已连接，避免被僵尸清理器误删
+
+	// 初始化通道
+	player.Send = make(chan []byte, 256)
+	player.Done = make(chan struct{})
+
 	conn.SetReadLimit(MaxMessageSize)
 	conn.SetReadDeadline(time.Now().Add(PongWait))
 	conn.SetPongHandler(func(string) error {
@@ -170,38 +222,62 @@ func (g *BoxHead) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("玩家 %s (%s) 已连接", player.Name, player.UUID)
 
-	// 启动 ping 定时器
-	go g.pingLoop(player)
+	// 启动写协程
+	go g.writePump(player)
 
-	// 读取消息循环（阻塞）
+	// 当前协程负责读消息（阻塞）
 	g.readMessages(player)
 
-	// 清理连接
+	// 连接退出后清理
 	g.cleanupPlayer(player)
 }
 
-// pingLoop 定期发送 ping 保持连接
-func (g *BoxHead) pingLoop(p *Player) {
+// writePump 串行化发送数据到 WebSocket
+func (g *BoxHead) writePump(p *Player) {
 	ticker := time.NewTicker(PingPeriod)
-	defer ticker.Stop()
-	for range ticker.C {
-		if p.Conn == nil {
-			return
-		}
-		if err := p.Conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(WriteWait)); err != nil {
-			log.Printf("ping 失败 for %s: %v", p.UUID, err)
-			p.Conn.Close()
+	defer func() {
+		ticker.Stop()
+		p.Conn.Close()
+	}()
+	for {
+		select {
+		case <-ticker.C:
+			p.Conn.SetWriteDeadline(time.Now().Add(WriteWait))
+			if err := p.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
+		case message, ok := <-p.Send:
+			if !ok {
+				return
+			}
+			p.Conn.SetWriteDeadline(time.Now().Add(WriteWait))
+			if err := p.Conn.WriteMessage(websocket.TextMessage, message); err != nil {
+				return
+			}
+		case <-p.Done:
 			return
 		}
 	}
 }
 
-// readMessages 读取客户端消息并更新位置
+// readMessages 读取客户端消息，更新玩家状态
 func (g *BoxHead) readMessages(p *Player) {
 	defer func() {
 		if p.Conn != nil {
 			p.Conn.Close()
 		}
+	}()
+
+	// 应用层空闲超时（可选）：若超过此时间未收到任何有效消息则断开
+	const appIdleTimeout = 5 * time.Minute
+	idleTimer := time.NewTimer(appIdleTimeout)
+	defer idleTimer.Stop()
+
+	// 监听空闲超时
+	go func() {
+		<-idleTimer.C
+		log.Printf("玩家 %s 应用层空闲超时，断开连接", p.UUID)
+		p.Conn.Close()
 	}()
 
 	for {
@@ -212,6 +288,7 @@ func (g *BoxHead) readMessages(p *Player) {
 			}
 			break
 		}
+
 		var raw map[string]interface{}
 		if err := json.Unmarshal(message, &raw); err != nil {
 			log.Printf("无效JSON from %s: %v", p.UUID, err)
@@ -223,43 +300,88 @@ func (g *BoxHead) readMessages(p *Player) {
 			log.Printf("消息缺少type字段 from %s", p.UUID)
 			continue
 		}
+
+		// 收到任何有效业务消息时重置空闲计时器
+		if !idleTimer.Stop() {
+			select {
+			case <-idleTimer.C:
+			default:
+			}
+		}
+		idleTimer.Reset(appIdleTimeout)
+
 		switch msgType {
 		case "join":
-			// 处理加入消息（设置玩家名称和角色类型）
-			cacheName := p.Name
-
-			p.UUID = raw["uuid"].(string)
-			p.Name = raw["name"].(string)
-			p.CharacterType = raw["char_type"].(string)
-
-			log.Printf("玩家 %s (%s) 已设置名称: %s, 角色: %s", cacheName, p.UUID, p.Name, p.CharacterType)
-		case "move":
+			g.mu.Lock()
+			if name, ok := raw["name"].(string); ok {
+				p.Name = name
+			}
+			if charType, ok := raw["char_type"].(string); ok {
+				p.CharacterType = charType
+			}
+			g.mu.Unlock()
+			log.Printf("玩家 %s 信息更新: 名称=%s, 角色=%s", p.UUID, p.Name, p.CharacterType)
+		case "player_game_status": // 时刻更新玩家状态
+			g.mu.Lock()
 			x, xok := raw["x"].(float64)
 			y, yok := raw["y"].(float64)
 			if xok && yok {
 				p.X = x
 				p.Y = y
-			} else {
-				log.Printf("移动消息格式错误 from %s", p.UUID)
 			}
+
+			if IsWalking, ok := raw["is_walking"].(bool); ok {
+				p.IsWalking = IsWalking
+			}
+
+			g.mu.Unlock()
 		default:
 			log.Printf("未知消息类型 %s from %s", msgType, p.UUID)
 		}
 	}
 }
 
-// cleanupPlayer 清理玩家连接并从游戏中移除
+// cleanupPlayer 从游戏中移除玩家
 func (g *BoxHead) cleanupPlayer(p *Player) {
+	p.cleanupOnce.Do(func() {
+		g.mu.Lock()
+		if cur, ok := g.players[p.UUID]; ok && cur == p {
+			delete(g.players, p.UUID)
+		}
+		g.mu.Unlock()
+
+		// 通知写协程停止
+		close(p.Done)
+
+		log.Printf("玩家 %s (%s) 已退出游戏", p.Name, p.UUID)
+		g.printPlayerList()
+	})
+}
+
+// zombieCleaner 定期清理创建后长时间未建立连接的玩家
+func (g *BoxHead) zombieCleaner() {
+	ticker := time.NewTicker(CleanZombieInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			g.cleanZombiePlayers()
+		case <-g.stopChan:
+			return
+		}
+	}
+}
+
+func (g *BoxHead) cleanZombiePlayers() {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	// 如果 map 中的玩家还是当前这个（确保没被重新连接覆盖），则删除
-	if cur, ok := g.players[p.UUID]; ok && cur == p {
-		delete(g.players, p.UUID)
-		log.Printf("玩家 %s (%s) 已退出游戏", p.Name, p.UUID)
-	}
-	if p.Conn != nil {
-		p.Conn.Close()
-		p.Conn = nil
+
+	now := time.Now()
+	for uuid, p := range g.players {
+		if !p.Connected && now.Sub(p.CreatedAt) > MaxCreateAge {
+			log.Printf("清理未连接僵尸玩家: %s (%s), 已存在 %v", p.Name, uuid, now.Sub(p.CreatedAt))
+			delete(g.players, uuid)
+		}
 	}
 }
 
@@ -284,57 +406,67 @@ func (g *BoxHead) broadcastGameState() {
 		g.mu.RUnlock()
 		return
 	}
-	// 复制快照: 每个玩家的必要信息
+
 	type playerSnapshot struct {
-		UUID          string  `json:"uuid"`
-		Name          string  `json:"name"`
-		X             float64 `json:"x"`
-		Y             float64 `json:"y"`
-		CharacterType string  `json:"char_type"`
-		Conn          *websocket.Conn
+		UUID          string
+		Name          string
+		X             float64
+		Y             float64
+		IsWalking     bool
+		CharacterType string
+		Send          chan []byte
+		Done          <-chan struct{}
 	}
-	PlyaerSnapshots := make([]playerSnapshot, 0, len(g.players))
+	snapshots := make([]playerSnapshot, 0, len(g.players))
 	for _, p := range g.players {
-		PlyaerSnapshots = append(PlyaerSnapshots, playerSnapshot{
+		if !p.Connected {
+			continue
+		}
+
+		snapshots = append(snapshots, playerSnapshot{
 			UUID:          p.UUID,
 			Name:          p.Name,
 			X:             p.X,
 			Y:             p.Y,
+			IsWalking:     p.IsWalking,
 			CharacterType: p.CharacterType,
-			Conn:          p.Conn,
+			Send:          p.Send,
+			Done:          p.Done,
 		})
 	}
 	g.mu.RUnlock()
 
-	// 构造广播消息
+	playersForMsg := make([]map[string]interface{}, len(snapshots))
+	for i, ps := range snapshots {
+		playersForMsg[i] = map[string]interface{}{
+			"uuid":       ps.UUID,
+			"name":       ps.Name,
+			"x":          ps.X,
+			"y":          ps.Y,
+			"is_walking": ps.IsWalking,
+			"char_type":  ps.CharacterType,
+		}
+	}
 	msg := map[string]interface{}{
-		"type": "game_state",
-		"snapshots": map[string]interface{}{
-			"Players": PlyaerSnapshots,
-		},
+		"type":      "game_state",
+		"snapshots": map[string]interface{}{"Players": playersForMsg},
 	}
 	data, err := json.Marshal(msg)
 	if err != nil {
 		log.Printf("序列化消息失败: %v", err)
 		return
 	}
-	// 向每个玩家发送
-	for _, ps := range PlyaerSnapshots {
-		if ps.Conn == nil {
-			continue
-		}
-		// 设置写超时
-		ps.Conn.SetWriteDeadline(time.Now().Add(WriteWait))
-		if err := ps.Conn.WriteMessage(websocket.TextMessage, data); err != nil {
-			log.Printf("发送给 %s 失败: %v", ps.UUID, err)
-			// 发送失败时关闭连接，下次广播会因 Conn == nil 而忽略
-			ps.Conn.Close()
-			return
+
+	for _, ps := range snapshots {
+		select {
+		case ps.Send <- data:
+		case <-ps.Done:
+		default:
 		}
 	}
 }
 
-// writeError 辅助函数返回 JSON 错误
+// writeError 返回 JSON 格式错误
 func writeError(w http.ResponseWriter, status int, msg string) {
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(map[string]string{"error": msg, "code": "400"})
