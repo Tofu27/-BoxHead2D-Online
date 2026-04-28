@@ -163,6 +163,7 @@ class Player(Character):
         self.uuid = None
         self.username = None
         self.is_remote = False  # 是否是网络角色（默认本地角色）
+        self.remote_mouse_pos = None # 远程角色的鼠标坐标
         
         self.char_type = "Player" # 类型
         self.speed = 1600       # 移动速度（力的大小）
@@ -207,8 +208,7 @@ class Player(Character):
         """更新玩家状态：先移动部件，再更新走路动画。"""
         super().update()
 
-        if self.is_remote == False:
-            self.aim()
+        self.aim()
 
         if self.walking_frames == 0:  
             self.walking_frames = self.walking_frames_max
@@ -289,7 +289,12 @@ class Player(Character):
 
         
     def aim(self) -> None:
-        aim_pos = self.mouse_pos - self.pos
+
+        mouse_pos = self.remote_mouse_pos if self.is_remote else self.mouse_pos
+        if mouse_pos is None:
+            return 
+
+        aim_pos = mouse_pos - self.pos
         self.current_weapon.aim(aim_pos)
 
         

@@ -12,6 +12,11 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type Pos struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+}
+
 // Player 游戏玩家
 type Player struct {
 	UUID          string  `json:"uuid"`
@@ -20,8 +25,9 @@ type Player struct {
 	X             float64 `json:"x"`
 	Y             float64 `json:"y"`
 	IsWalking     bool    `json:"is_walking"`
-	Conn          *websocket.Conn
+	MousePos      Pos     `json:"mouse_pos"`
 
+	Conn        *websocket.Conn
 	Send        chan []byte   // 用于串行化 WebSocket 写操作
 	Done        chan struct{} // 通知 writePump 退出
 	cleanupOnce sync.Once     // 确保清理逻辑只执行一次
@@ -322,6 +328,19 @@ func (g *BoxHead) readMessages(p *Player) {
 			g.mu.Unlock()
 			log.Printf("玩家 %s 信息更新: 名称=%s, 角色=%s", p.UUID, p.Name, p.CharacterType)
 		case "player_game_status": // 时刻更新玩家状态
+
+			// python客户端发送
+			// {
+			//     "type": "player_game_status",
+			//     "x": self.player.pos.x,
+			//     "y": self.player.pos.y,
+			//     "is_walking": self.player.is_walking,
+			//     "mouse_pos": {
+			//         "x": self.mouse_pos.x,
+			//         "y": self.mouse_pos.y
+			//     },
+			// }
+
 			g.mu.Lock()
 			x, xok := raw["x"].(float64)
 			y, yok := raw["y"].(float64)
@@ -332,6 +351,24 @@ func (g *BoxHead) readMessages(p *Player) {
 
 			if IsWalking, ok := raw["is_walking"].(bool); ok {
 				p.IsWalking = IsWalking
+			}
+
+			if MousePos, ok := raw["mouse_pos"].(map[string]interface{}); ok {
+				var pos Pos
+
+				if mx, ok := MousePos["x"].(float64); ok {
+					pos.X = mx
+				}
+
+				if my, ok := MousePos["y"].(float64); ok {
+					pos.Y = my
+				}
+
+				p.MousePos = pos
+
+			} else {
+				println("接受鼠标信息失败", raw)
+				panic("失败")
 			}
 
 			g.mu.Unlock()
@@ -413,6 +450,7 @@ func (g *BoxHead) broadcastGameState() {
 		X             float64
 		Y             float64
 		IsWalking     bool
+		MousePos      Pos
 		CharacterType string
 		Send          chan []byte
 		Done          <-chan struct{}
@@ -429,6 +467,7 @@ func (g *BoxHead) broadcastGameState() {
 			X:             p.X,
 			Y:             p.Y,
 			IsWalking:     p.IsWalking,
+			MousePos:      p.MousePos,
 			CharacterType: p.CharacterType,
 			Send:          p.Send,
 			Done:          p.Done,
@@ -444,6 +483,7 @@ func (g *BoxHead) broadcastGameState() {
 			"x":          ps.X,
 			"y":          ps.Y,
 			"is_walking": ps.IsWalking,
+			"mouse_pos":  ps.MousePos,
 			"char_type":  ps.CharacterType,
 		}
 	}

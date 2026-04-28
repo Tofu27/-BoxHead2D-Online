@@ -208,7 +208,9 @@ class GameView(FadingView):
                 self.other_players[pid]["target_y"] = y
                 self.other_players[pid]["name"] = p.get("name", "")
                 self.other_players[pid]["player"].username = p.get("name", "")
-                self.other_players[pid]["player"].is_walking  = p.get("is_walking", "")
+                self.other_players[pid]["player"].is_walking = p.get("is_walking", "")
+                pos = p.get("mouse_pos", "")
+                self.other_players[pid]["player"].remote_mouse_pos = Vec2(pos['x'], pos['y'])
 
         # 移除离开的玩家
         for pid in current_ids - received_ids:
@@ -224,12 +226,9 @@ class GameView(FadingView):
             "Rambo": Rambo,
             "Redbit": Redbit,
         }
-        print("创建角色 uuid, char_type", self.player.uuid, char_type)
         cls = class_map.get(char_type, Player)
         # 物理引擎传 None，避免不必要的物理模拟
         instance = cls(x, y, physics_engine=None)
-        
-        print("实例化后", instance.char_type)
         # 可选：设置初始位置（稍后会通过 target_x/target_y 覆盖）
         instance.center_x = x
         instance.center_y = y
@@ -245,7 +244,11 @@ class GameView(FadingView):
                 "type": "player_game_status", 
                 "x": self.player.pos.x, 
                 "y": self.player.pos.y,
-                "is_walking": self.player.is_walking
+                "is_walking": self.player.is_walking,
+                "mouse_pos": {
+                    "x": self.mouse_pos.x,
+                    "y": self.mouse_pos.y
+                },
             })
             self.last_send_time = now
 
