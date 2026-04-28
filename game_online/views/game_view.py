@@ -38,6 +38,7 @@ class GameView(FadingView):
         # Sprite lists
         self.wall_list = None
         self.player = None
+        self.player_bullet_list = None
         
         # Track the current state of what key is pressed
         self.left_pressed = False
@@ -74,6 +75,11 @@ class GameView(FadingView):
 
         # Play game BGM
         self.window.play_game_music(1)
+
+
+        # GameObject lists
+        self.wall_list = arcade.SpriteList()
+        self.player_bullet_list = arcade.SpriteList()
 
         # Create the physics engine
         damping = 0.01
@@ -149,6 +155,9 @@ class GameView(FadingView):
         for data in self.other_players.values():
             data["player"].draw()  # 自动绘制身体、脚、武器等
 
+        # 绘制子弹
+        self.player_bullet_list.draw()
+
         self.camera_gui.use() # 切换 GUi相机，绘制准许，信息UI
 
         # 鼠标准星
@@ -164,6 +173,7 @@ class GameView(FadingView):
 
         self.physics_engine.step()
         self.player.update()
+        self.update_player_attack()
         self.scroll_to_player()
 
         
@@ -241,7 +251,6 @@ class GameView(FadingView):
 
         return instance
 
-
     def _send_status_if_needed(self):
         now = time.time()
         if now - self.last_send_time >= self.send_interval:
@@ -276,6 +285,8 @@ class GameView(FadingView):
             # 调用 update()
             player_obj.update()
 
+
+
     def on_key_press(self, key, modifiers) -> None:
         """Called whenever a key is pressed."""
 
@@ -308,6 +319,12 @@ class GameView(FadingView):
         self.mouse_sprite.center_x = x
         self.mouse_sprite.center_y = y
 
+    def on_mouse_press(self, x: int, y: int, button: int, modifiers: int) -> None:
+        if button == arcade.MOUSE_BUTTON_LEFT:
+            self.player.is_attack = True
+        if button == arcade.MOUSE_BUTTON_RIGHT:
+            self.player.use_skill()
+
     def scroll_to_player(self) -> None:
         x = self.player.pos.x - float(self.w / 2)
         if self.player.pos.x < float(self.w / 2):
@@ -328,3 +345,28 @@ class GameView(FadingView):
         self.h = height
         self.camera_sprites.resize(width, height)
         self.camera_gui.resize(width, height)
+
+    def update_player_attack(self) -> None:
+        if self.player.is_attack:
+            # 冷却时间满了
+            if self.player.cd == self.player.cd_max:
+                self.player.cd = 0
+
+            if self.player.cd == 0:
+
+                # 如果武器是枪
+                if self.player.current_weapon.is_gun:
+
+                    # 创建子弹
+                    bullets = self.player.attack()
+
+                    self.player.current_weapon.play_sound(
+                        self.window.effect_volume)
+                    
+                    for bullet in bullets:
+                        bullet.change_x = bullet.aim.x
+                        bullet.change_y = bullet.aim.y
+                        self.player_bullet_list.append(bullet)
+            
+        # 冷却中
+        self.player.cd = min(self.player.cd + 1, self.player.cd_max)
