@@ -3,7 +3,7 @@ from views.base_view import FadingView
 from utils.utils import Utils
 from pyglet.math import Vec2
 from arcade.pymunk_physics_engine import PymunkPhysicsEngine
-from entities.character import Player, Rambo, Redbit
+from entities.character import CreatePlayer, CHARACTER_REGISTRY
 from entities.room import Room
 from entities.weapon import Missile
 from views.base_view import CAMERA_SPEED
@@ -94,13 +94,16 @@ class GameView(FadingView):
         self.WallList = self.room.walls
 
         # 创建本地玩家角色
-        player: Player = player_meta['player']
-        self.player = player(
-            float(self.room.width / 2), float(self.room.height / 2), self.physics_engine
+        self.player = CreatePlayer(
+            player_meta['player_char_type'],
+            float(self.room.width / 2), float(self.room.height / 2), 
+            self.physics_engine,
+            False
         )
         self.player.register_mouse_pos(self.mouse_pos)   # 让玩家知道鼠标位置（用于瞄准）
         self.player.uuid = player_meta['uuid']
         self.player.username = player_meta['name']
+        self.player.bullet_list = self.PlayerBulletList
 
         # 将玩家加入物理世界（动态刚体）
         self.physics_engine.add_sprite(
@@ -124,8 +127,8 @@ class GameView(FadingView):
          # 创建远程玩家管理器，传入物理引擎、子弹列表、窗口
         self.RemoteManager = RemotePlayerManager(
             physics_engine=self.physics_engine,
-            BulletList=self.PlayerBulletList,
             window=self.window,
+            BulletList=self.PlayerBulletList,
             LocalUUID= self.player.uuid
         )
 
@@ -209,6 +212,7 @@ class GameView(FadingView):
         # 更新远程玩家（内部处理位置插值和攻击模拟）
         self.RemoteManager.update()
 
+        # 子弹精灵图判断
         self.process_player_bullet()
 
         # 4. 摄像机跟随本地玩家
@@ -216,7 +220,6 @@ class GameView(FadingView):
 
         # 5. 发送本地玩家的位置、状态给服务器（限频）
         self._send_status_if_needed()
-
 
     def _send_status_if_needed(self):
         """限制频率向服务器发送本地玩家的状态（位置、动作、鼠标指向等）。"""

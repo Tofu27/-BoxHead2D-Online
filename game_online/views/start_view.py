@@ -5,10 +5,10 @@ from pyglet.math import Vec2
 from arcade.pymunk_physics_engine import PymunkPhysicsEngine
 from entities.room import StartRoom, GameRoom0
 from utils.utils import Color, Style
-from entities.character import Player, Character, Player, Rambo, Redbit
+from entities.character import CreatePlayer, CHARACTER_REGISTRY
 from views.base_view import CAMERA_SPEED
 from views.game_view import GameView
-from network.http import CreatePlayer
+from network.http import HttpCreatePlayer
 
 # ==================== 开始菜单视图（带物理引擎和UI） ====================
 class StartView(FadingView):
@@ -51,8 +51,12 @@ class StartView(FadingView):
         self.wall_list = self.room.walls
 
         # 创建玩家角色（支持WASD移动）
-        self.player = Player(
-            float(self.w / 2), float(self.h / 2) + 20, self.physics_engine
+        self.player = CreatePlayer(
+            char_type="Player", 
+            x=float(self.w / 2), 
+            y=float(self.h / 2) + 20, 
+            physics_engine=self.physics_engine, 
+            is_remote=False
         )
         self.player.register_mouse_pos(self.mouse_pos) #鼠标坐标信息传递给用户角色
 
@@ -373,14 +377,17 @@ class SelectionView(FadingView):
 
         # Characters
         self.char_sprites = arcade.SpriteList()
-        self.char_list = [
-            Player,
-            Rambo,
-            Redbit,
-        ]
+        self.char_types = ["Player", "Rambo", "Redbit"]
         self.cur_char_idx = 0
-        self.cur_char = Character(
-            float(self.w/2 - 240), float(self.h/2 + 100))
+        self.cur_char = CreatePlayer(
+            char_type=self.char_types[0],
+            x=float(self.w/2 - 240), 
+            y=float(self.h/2 + 100),
+            physics_engine=None,
+            is_remote=False
+        )
+        self.cur_char.center_x = float(self.w/2 - 240)
+        self.cur_char.center_y = float(self.h/2 + 100)
 
         self.name_list.append(
             arcade.Text(
@@ -409,7 +416,7 @@ class SelectionView(FadingView):
                 color=Color.BLACK,
             )
         )
-        self.set_character()
+        self.set_character(0)
 
 
         # Maps
@@ -501,7 +508,7 @@ class SelectionView(FadingView):
                 self.input_error_label.color = arcade.color.RED
                 return
             
-            info, err = CreatePlayer(name)
+            info, err = HttpCreatePlayer(name)
             if err is not None:
                 self.input_error_label.text = err
                 self.input_error_label.color = arcade.color.RED
@@ -525,15 +532,21 @@ class SelectionView(FadingView):
 
     
     def set_character(self, idx: int = 0) -> None:
-        self.cur_char_idx += idx
-        self.cur_char_idx %= len(self.char_list)
+        self.cur_char_idx = (self.cur_char_idx + idx) % len(self.char_types)
+        char_type = self.char_types[self.cur_char_idx]
+        config = CHARACTER_REGISTRY[char_type]
+        # 更换纹理
+        self.cur_char.body.texture = arcade.load_texture(config["texture"])
+        # 更新本地化文本
+        self.name_list[0].text = self.window.cur_lang.DescribeText.get(
+            config["name"], config["name"]
+        )
+        self.describe_list[0].text = self.window.cur_lang.DescribeText.get(
+            config["description"], config["description"]
+        )
+        # 刷新绘制列表
         self.char_sprites.clear()
-        self.cur_char.body.texture = self.char_list[self.cur_char_idx].body_texture
         self.char_sprites.extend(self.cur_char.parts)
-        self.name_list[0].text = self.window.cur_lang.DescribeText[
-            self.char_list[self.cur_char_idx].name]
-        self.describe_list[0].text = self.window.cur_lang.DescribeText[
-            self.char_list[self.cur_char_idx].description]
 
     def clear_input_message(self, delta_time: float):
         self.input_error_label.text = ""
@@ -552,7 +565,6 @@ class SelectionView(FadingView):
             
     def on_update(self, delta_time: float):
         self.cur_char.update()
-
 
     def on_click_last_char(self, event) -> None:
         self.set_character(-1)
@@ -580,7 +592,7 @@ class SelectionView(FadingView):
         player_meta = {
             "uuid": self.playerUUID,
             "name": self.playerName,
-            "player": self.char_list[self.cur_char_idx],
+            "player_char_type": self.char_types[self.cur_char_idx],
         }
 
         Utils.clear_ui_manager(self.manager)

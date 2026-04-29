@@ -1,6 +1,6 @@
 from typing import Dict, List
 import arcade
-from entities.character import RemotePlayer
+from entities.character import RemotePlayer, CHARACTER_REGISTRY
 
 
 class RemotePlayerManager:
@@ -34,7 +34,7 @@ class RemotePlayerManager:
                     char_type=data.get("char_type", "Player"),
                     x=data["x"],
                     y=data["y"],
-                    physics_engine=self.physics_engine
+                    physics_engine=None
                 )
                 # 将玩家作为运动学刚体加入物理世界
                 self.physics_engine.add_sprite(
@@ -46,9 +46,7 @@ class RemotePlayerManager:
                     elasticity=0.1,
                     body_type=arcade.pymunk_physics_engine.PymunkPhysicsEngine.KINEMATIC
                 )
-                # 将子弹列表引用传给玩家（以便添加子弹）
-                player.BulletList = self.BulletList
-                player.window = self.window
+                
                 self.RemotePlayers[pid] = player
             else:
                 # 更新现有玩家
@@ -64,6 +62,27 @@ class RemotePlayerManager:
         """更新所有远程玩家。"""
         for player in self.RemotePlayers.values():
             player.update()
+            self.update_player_attack(
+                player=player
+            )
+
+             
+    def update_player_attack(self, player: RemotePlayer) -> None:
+        if player.remote_is_attack:
+            if player.cd >= player.cd_max:
+                player.cd = 0
+
+            if player.cd == 0:
+                if player.current_weapon.is_gun:
+                    bullets = player.attack()
+                    player.current_weapon.play_sound(self.window.effect_volume)
+                    for bullet in bullets:
+                        bullet.change_x = bullet.aim.x
+                        bullet.change_y = bullet.aim.y
+                        if self.BulletList is not None:
+                            self.BulletList.append(bullet)
+
+        player.cd = min(player.cd + 1, player.cd_max)
 
     def draw(self):
         """绘制所有远程玩家。"""

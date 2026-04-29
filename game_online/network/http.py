@@ -1,6 +1,6 @@
 import requests
 
-def CreatePlayer(username):
+def HttpCreatePlayer(username):
     if not username:
         print("❌ 用户名不能为空！")
         return None, "用户名不能为空！"
