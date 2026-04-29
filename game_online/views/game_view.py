@@ -11,7 +11,7 @@ from views.base_view import CAMERA_SPEED
 import time
 import threading
 from network.wsClient import GameWebSocketClient
-from network.remote_manager import RemotePlayerManager
+from network.remoteManager import RemotePlayerManager
 
 
 class GameView(FadingView):
@@ -28,16 +28,14 @@ class GameView(FadingView):
         super().__init__()
 
         # ----- 多人联机相关 -----
-        self.remote_manager = None   # 将在 setup 中初始化
-
-        self.ws_client = None                      # WebSocket 客户端实例
-        self.other_players = {}                    # 存储其他玩家数据：{uuid: {"player": 精灵, "target_x":..., ...}}
-        self.last_send_time = 0                    # 上次向服务器发送状态的时间戳
-        self.send_interval = 0.05                  # 发送间隔（秒），约20Hz，匹配服务器 tick 频率
-        self._pending_players = []                 # 临时存储从服务器接收的玩家快照（待主线程处理）
-        self._pending_lock = threading.Lock()      # 保护 _pending_players 的线程锁
-        self._last_ws_print_time = 0               # 上次打印 WebSocket 消息的时间（用于节流）
-        self._ws_print_interval = 2.0              # 打印间隔（秒），避免控制台刷屏
+        self.RemoteManager = None   # 将在 setup 中初始化
+        self.WsClient = None                        # WebSocket 客户端实例
+        self._PendingPlayers = []                   # 临时存储从服务器接收的玩家快照（待主线程处理）
+        self._PendingLock = threading.Lock()        # 保护 _PendingPlayers 的线程锁
+        self.LastSendTime = 0                       # 上次向服务器发送状态的时间戳
+        self.SendInterval = 0.05                    # 发送间隔（秒），约20Hz，匹配服务器 tick 频率
+        self._LastWsPrintTime = 0                   # 上次打印 WebSocket 消息的时间（用于节流）
+        self._WsPrintInterval = 2.0                 # 打印间隔（秒），避免控制台刷屏
 
         # ----- 鼠标和 UI -----
         self.mouse_x = None                        # 鼠标在窗口中的 X 坐标
@@ -48,9 +46,9 @@ class GameView(FadingView):
         self.manager = None                        # GUI 管理器（商店等，暂未使用）
 
         # ----- 精灵列表 -----
-        self.wall_list = None                      # 墙壁精灵列表
+        self.WallList = None                      # 墙壁精灵列表
         self.player = None                         # 本地玩家角色
-        self.player_bullet_list = None             # 玩家发射的子弹列表
+        self.PlayerBulletList = None             # 玩家发射的子弹列表
 
         # ----- 移动按键状态 -----
         self.left_pressed = False
@@ -68,28 +66,24 @@ class GameView(FadingView):
         :param player_meta: 包含玩家信息的字典，必须有 'player'（角色类）、'uuid'、'name'、'char_type'
         :param map: 房间类（可调用，返回 Room 实例）
         """
-        player: Player = player_meta['player']
-
-        print("玩家信息", player_meta['uuid'])
-        print("地图信息", map)
 
         # ----- 1. 启动 WebSocket 客户端，连接游戏服务器 -----
-        self.ws_client = GameWebSocketClient(
-            server_url="ws://localhost:8888/ws",
-            player_uuid=player_meta['uuid'],
-            on_game_state=self.on_ws_game_state,   # 接收游戏状态的回调
-            on_connected=self.on_ws_connected,     # 连接成功后发送 join 消息
-            on_error=self.on_ws_error,
-            on_close=self.on_ws_close
+        self.WsClient = GameWebSocketClient(
+            serverUrl="ws://localhost:8888/ws",
+            playerUUID=player_meta['uuid'],
+            onGameState=self.on_ws_game_state,   # 接收游戏状态的回调
+            onConnected=self.on_ws_connected,     # 连接成功后发送 join 消息
+            onError=self.on_ws_error,
+            onClose=self.on_ws_close
         )
-        self.ws_client.start()   # 在后台线程中运行
+        self.WsClient.Start()   # 在后台线程中运行
 
         # ----- 2. 播放游戏背景音乐 -----
         self.window.play_game_music(1)
 
         # ----- 3. 初始化游戏对象和物理世界 -----
-        self.wall_list = arcade.SpriteList()
-        self.player_bullet_list = arcade.SpriteList()
+        self.WallList = arcade.SpriteList()
+        self.PlayerBulletList = arcade.SpriteList()
 
         damping = 0.01
         gravity = (0, 0)
@@ -97,9 +91,10 @@ class GameView(FadingView):
 
         # 创建房间（地图）
         self.room = map()
-        self.wall_list = self.room.walls
+        self.WallList = self.room.walls
 
         # 创建本地玩家角色
+        player: Player = player_meta['player']
         self.player = player(
             float(self.room.width / 2), float(self.room.height / 2), self.physics_engine
         )
@@ -127,11 +122,11 @@ class GameView(FadingView):
 
 
          # 创建远程玩家管理器，传入物理引擎、子弹列表、窗口
-        self.remote_manager = RemotePlayerManager(
+        self.RemoteManager = RemotePlayerManager(
             physics_engine=self.physics_engine,
-            bullet_list=self.player_bullet_list,
+            BulletList=self.PlayerBulletList,
             window=self.window,
-            local_uuid= self.player.uuid
+            LocalUUID= self.player.uuid
         )
 
     # -------------------- WebSocket 回调函数（由子线程调用）--------------------
@@ -143,12 +138,12 @@ class GameView(FadingView):
         """
         now = time.time()
         # 控制台输出节流，避免刷屏
-        if now - self._last_ws_print_time >= self._ws_print_interval:
+        if now - self._LastWsPrintTime >= self._WsPrintInterval:
             print("ws消息 (节流):", players_list)
-            self._last_ws_print_time = now
+            self._LastWsPrintTime = now
 
-        with self._pending_lock:
-            self._pending_players = players_list   # 替换为新快照
+        with self._PendingLock:
+            self._PendingPlayers = players_list   # 替换为新快照
 
     def on_ws_connected(self):
         """WebSocket 连接成功后调用（子线程）。发送 join 消息通知服务器该玩家加入。"""
@@ -158,7 +153,7 @@ class GameView(FadingView):
             "name": self.player.username,
             "char_type": self.player.char_type   # 玩家选择的角色类型（Player/Rambo/Redbit）
         }
-        self.ws_client.send_json(join_msg)
+        self.WsClient.SendJsonMsg(join_msg)
 
     def on_ws_error(self, err):
         print("WS 报错:", err)
@@ -178,9 +173,9 @@ class GameView(FadingView):
         self.player.draw()
 
         # 绘制远程玩家
-        self.remote_manager.draw()
+        self.RemoteManager.draw()
 
-        self.player_bullet_list.draw()
+        self.PlayerBulletList.draw()
 
         # 2. 绘制 GUI（准星等）——使用 GUI 相机（固定屏幕位置）
         self.camera_gui.use()
@@ -199,10 +194,10 @@ class GameView(FadingView):
         - 平滑插值其他玩家的位置
         """
         # 1. 从待决缓冲区取出新数据，同步其他玩家
-        with self._pending_lock:
-            if self._pending_players:
-                self.remote_manager.sync_from_snapshot(self._pending_players)
-                self._pending_players = []
+        with self._PendingLock:
+            if self._PendingPlayers:
+                self.RemoteManager.sync_from_snapshot(self._PendingPlayers)
+                self._PendingPlayers = []
 
         # 2. 物理引擎步进
         self.physics_engine.step()
@@ -212,7 +207,7 @@ class GameView(FadingView):
         self.update_player_attack()
 
         # 更新远程玩家（内部处理位置插值和攻击模拟）
-        self.remote_manager.update()
+        self.RemoteManager.update()
 
         self.process_player_bullet()
 
@@ -226,8 +221,8 @@ class GameView(FadingView):
     def _send_status_if_needed(self):
         """限制频率向服务器发送本地玩家的状态（位置、动作、鼠标指向等）。"""
         now = time.time()
-        if now - self.last_send_time >= self.send_interval:
-            self.ws_client.send_json({
+        if now - self.LastSendTime >= self.SendInterval:
+            self.WsClient.SendJsonMsg({
                 "type": "player_game_status",
                 "x": self.player.pos.x,
                 "y": self.player.pos.y,
@@ -238,7 +233,7 @@ class GameView(FadingView):
                     "y": self.mouse_pos.y
                 },
             })
-            self.last_send_time = now
+            self.LastSendTime = now
 
     # -------------------- 玩家输入处理 --------------------
     def on_key_press(self, key, modifiers) -> None:
@@ -326,7 +321,7 @@ class GameView(FadingView):
                     for bullet in bullets:
                         bullet.change_x = bullet.aim.x
                         bullet.change_y = bullet.aim.y
-                        self.player_bullet_list.append(bullet)
+                        self.PlayerBulletList.append(bullet)
 
         self.player.cd = min(self.player.cd + 1, self.player.cd_max)
 
@@ -337,13 +332,13 @@ class GameView(FadingView):
         - 碰撞检测（目前只与墙壁碰撞）
         - 撞墙或生命周期耗尽则移除子弹
         """
-        self.player_bullet_list.update()
+        self.PlayerBulletList.update()
 
-        for bullet in self.player_bullet_list:
+        for bullet in self.PlayerBulletList:
             bullet.life_span -= 1
 
             # 仅检测与墙壁的碰撞（敌人碰撞待后续实现）
-            hit_list = arcade.check_for_collision_with_list(bullet, self.wall_list)
+            hit_list = arcade.check_for_collision_with_list(bullet, self.WallList)
             if len(hit_list) > 0:
                 bullet.remove_from_sprite_lists()
                 continue

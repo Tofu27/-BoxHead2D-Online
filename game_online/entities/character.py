@@ -386,7 +386,6 @@ class RemotePlayer(Player):
     """网络同步的远程玩家角色，支持位置插值和攻击模拟。"""
 
     def __init__(self, char_type: str, x: float, y: float, physics_engine=None):
-        # 根据 char_type 选择合适的基类
         class_map = {"Player": Player, "Rambo": Rambo, "Redbit": Redbit}
         cls = class_map.get(char_type, Player)
          # 调用父类构造，但不传入 physics_engine（后面会手动以运动学方式添加）
@@ -408,6 +407,13 @@ class RemotePlayer(Player):
         self.remote_is_walking = False
         self.remote_is_attack = False
         self.remote_mouse_pos = Vec2(0, 0)
+
+    def draw(self) -> None:
+        """绘制玩家，并根据武器朝向调整绘制顺序（右手前，左手后）。"""
+        super().draw()
+
+        if self.username:
+            self.draw_name()             # 绘制玩家名称
 
 
     def update(self):
