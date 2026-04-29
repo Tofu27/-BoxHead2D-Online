@@ -25,6 +25,7 @@ type Player struct {
 	X             float64 `json:"x"`
 	Y             float64 `json:"y"`
 	IsWalking     bool    `json:"is_walking"`
+	IsAttack      bool    `json:"is_attack"`
 	MousePos      Pos     `json:"mouse_pos"`
 
 	Conn        *websocket.Conn
@@ -330,6 +331,10 @@ func (g *BoxHead) readMessages(p *Player) {
 				p.IsWalking = walking
 			}
 
+			if attack, ok := raw["is_attack"].(bool); ok {
+				p.IsAttack = attack
+			}
+
 			if mpRaw, ok := raw["mouse_pos"].(map[string]interface{}); ok {
 				var pos Pos
 				if mx, ok := mpRaw["x"].(float64); ok {
@@ -418,6 +423,7 @@ func (g *BoxHead) broadcastGameState() {
 		X             float64
 		Y             float64
 		IsWalking     bool
+		IsAttack      bool
 		MousePos      Pos
 		CharacterType string
 		Send          chan []byte
@@ -434,6 +440,7 @@ func (g *BoxHead) broadcastGameState() {
 			X:             p.X,
 			Y:             p.Y,
 			IsWalking:     p.IsWalking,
+			IsAttack:      p.IsAttack,
 			MousePos:      p.MousePos,
 			CharacterType: p.CharacterType,
 			Send:          p.Send,
@@ -452,6 +459,7 @@ func (g *BoxHead) broadcastGameState() {
 			"is_walking": ps.IsWalking,
 			"mouse_pos":  ps.MousePos,
 			"char_type":  ps.CharacterType,
+			"is_attack":  ps.IsAttack,
 		}
 	}
 	msg := map[string]interface{}{

@@ -5,102 +5,109 @@ from pyglet.math import Vec2
 from arcade.pymunk_physics_engine import PymunkPhysicsEngine
 from entities.character import Player, Rambo, Redbit
 from entities.room import Room
+from entities.weapon import Missile
 from views.base_view import CAMERA_SPEED
 
 import time
 import threading
 from network.wsClient import GameWebSocketClient
+from network.remote_manager import RemotePlayerManager
 
 
 class GameView(FadingView):
-    """主游戏视图。"""
+    """
+    主游戏视图。
+    负责：
+    - 显示地图、玩家（本地+远程）、子弹
+    - 处理用户输入（移动、射击）
+    - 通过 WebSocket 与服务器同步其他玩家状态
+    - 管理本地物理世界和渲染
+    """
 
     def __init__(self):
         super().__init__()
 
-        self.ws_client = None
-        self.other_players = {}   # {player_id: {"sprite":..., "x":..., "y":...}}
-        self.last_send_time = 0
-        self.send_interval = 0.05  # 20Hz，与服务器 tick 频率接近
-        self._pending_players = []
-        self._pending_lock = threading.Lock()
-        self._last_ws_print_time = 0
-        self._ws_print_interval = 2.0  # 每2秒打印一次
+        # ----- 多人联机相关 -----
+        self.remote_manager = None   # 将在 setup 中初始化
 
+        self.ws_client = None                      # WebSocket 客户端实例
+        self.other_players = {}                    # 存储其他玩家数据：{uuid: {"player": 精灵, "target_x":..., ...}}
+        self.last_send_time = 0                    # 上次向服务器发送状态的时间戳
+        self.send_interval = 0.05                  # 发送间隔（秒），约20Hz，匹配服务器 tick 频率
+        self._pending_players = []                 # 临时存储从服务器接收的玩家快照（待主线程处理）
+        self._pending_lock = threading.Lock()      # 保护 _pending_players 的线程锁
+        self._last_ws_print_time = 0               # 上次打印 WebSocket 消息的时间（用于节流）
+        self._ws_print_interval = 2.0              # 打印间隔（秒），避免控制台刷屏
 
-        self.mouse_x = None
-        self.mouse_y = None
-        self.mouse_pos = Vec2(0, 0)
-        self.mouse_sprite = arcade.Sprite("public/graphics/ui/Cursor.png")
-        self.physics_engine = None
-        self.manager = None
+        # ----- 鼠标和 UI -----
+        self.mouse_x = None                        # 鼠标在窗口中的 X 坐标
+        self.mouse_y = None                        # 鼠标在窗口中的 Y 坐标
+        self.mouse_pos = Vec2(0, 0)                # 鼠标在世界空间中的位置（考虑摄像机偏移）
+        self.mouse_sprite = arcade.Sprite("public/graphics/ui/Cursor.png")   # 自定义鼠标光标
+        self.physics_engine = None                 # Pymunk 物理引擎实例
+        self.manager = None                        # GUI 管理器（商店等，暂未使用）
 
-        # Sprite lists
-        self.wall_list = None
-        self.player = None
-        self.player_bullet_list = None
-        
-        # Track the current state of what key is pressed
+        # ----- 精灵列表 -----
+        self.wall_list = None                      # 墙壁精灵列表
+        self.player = None                         # 本地玩家角色
+        self.player_bullet_list = None             # 玩家发射的子弹列表
+
+        # ----- 移动按键状态 -----
         self.left_pressed = False
         self.right_pressed = False
         self.up_pressed = False
         self.down_pressed = False
 
-        self.camera_sprites = arcade.Camera(self.w, self.h)
-        self.camera_gui = arcade.Camera(self.w, self.h)
+        # ----- 摄像机 -----
+        self.camera_sprites = arcade.Camera(self.w, self.h)   # 用于绘制游戏世界（跟随玩家）
+        self.camera_gui = arcade.Camera(self.w, self.h)       # 用于绘制 GUI（固定位置）
 
     def setup(self, player_meta: any, map: Room) -> None:
         """
         初始化游戏。
-        player_meta 应包含: player (类), uuid, name
-        room_class 是房间类（可调用返回 Room 实例）
+        :param player_meta: 包含玩家信息的字典，必须有 'player'（角色类）、'uuid'、'name'、'char_type'
+        :param map: 房间类（可调用，返回 Room 实例）
         """
+        player: Player = player_meta['player']
 
-        player:Player = player_meta['player']
-        
         print("玩家信息", player_meta['uuid'])
         print("地图信息", map)
 
-        # 启动 WebSocket 客户端
+        # ----- 1. 启动 WebSocket 客户端，连接游戏服务器 -----
         self.ws_client = GameWebSocketClient(
             server_url="ws://localhost:8888/ws",
-            player_uuid = player_meta['uuid'],
-            on_game_state=self.on_ws_game_state,
-            on_connected=self.on_ws_connected,   # 连接成功后发送 join
+            player_uuid=player_meta['uuid'],
+            on_game_state=self.on_ws_game_state,   # 接收游戏状态的回调
+            on_connected=self.on_ws_connected,     # 连接成功后发送 join 消息
             on_error=self.on_ws_error,
             on_close=self.on_ws_close
         )
-        self.ws_client.start()
+        self.ws_client.start()   # 在后台线程中运行
 
-
-        # Play game BGM
+        # ----- 2. 播放游戏背景音乐 -----
         self.window.play_game_music(1)
 
-
-        # GameObject lists
+        # ----- 3. 初始化游戏对象和物理世界 -----
         self.wall_list = arcade.SpriteList()
         self.player_bullet_list = arcade.SpriteList()
 
-        # Create the physics engine
         damping = 0.01
         gravity = (0, 0)
         self.physics_engine = PymunkPhysicsEngine(gravity, damping)
-        
-        # Game room setup
+
+        # 创建房间（地图）
         self.room = map()
-        
-        # Set up the player
+        self.wall_list = self.room.walls
+
+        # 创建本地玩家角色
         self.player = player(
-            float(self.room.width / 2), float(self.room.height / 2), self.physics_engine)
-        
-        self.player.register_mouse_pos(self.mouse_pos)
+            float(self.room.width / 2), float(self.room.height / 2), self.physics_engine
+        )
+        self.player.register_mouse_pos(self.mouse_pos)   # 让玩家知道鼠标位置（用于瞄准）
         self.player.uuid = player_meta['uuid']
         self.player.username = player_meta['name']
 
-
-        # Set up the shop
-        # self.shop = item.Shop(self.player)
-
+        # 将玩家加入物理世界（动态刚体）
         self.physics_engine.add_sprite(
             self.player,
             friction=0,
@@ -109,32 +116,47 @@ class GameView(FadingView):
             collision_type="player",
             elasticity=0.1
         )
+        # 将墙壁加入物理世界（静态刚体）
         self.physics_engine.add_sprite_list(
             self.room.walls,
             friction=0,
             collision_type="wall",
             body_type=PymunkPhysicsEngine.STATIC,
         )
+        # 注意：商店代码暂被注释
 
 
+         # 创建远程玩家管理器，传入物理引擎、子弹列表、窗口
+        self.remote_manager = RemotePlayerManager(
+            physics_engine=self.physics_engine,
+            bullet_list=self.player_bullet_list,
+            window=self.window,
+            local_uuid= self.player.uuid
+        )
+
+    # -------------------- WebSocket 回调函数（由子线程调用）--------------------
     def on_ws_game_state(self, players_list):
-        """服务器推送所有玩家状态（子线程回调，仅存储数据）"""
-
+        """
+        服务器推送所有玩家状态时回调。
+        运行在 WebSocket 子线程中，仅存储数据到 _pending_players，
+        避免在多线程中直接操作游戏主线程的精灵。
+        """
         now = time.time()
+        # 控制台输出节流，避免刷屏
         if now - self._last_ws_print_time >= self._ws_print_interval:
             print("ws消息 (节流):", players_list)
             self._last_ws_print_time = now
-            
+
         with self._pending_lock:
-            self._pending_players = players_list  # 替换为新快照
+            self._pending_players = players_list   # 替换为新快照
 
     def on_ws_connected(self):
-        """WebSocket 连接成功后调用（运行在子线程）"""
+        """WebSocket 连接成功后调用（子线程）。发送 join 消息通知服务器该玩家加入。"""
         join_msg = {
             "type": "join",
             "uuid": self.player.uuid,
             "name": self.player.username,
-            "char_type": self.player.char_type
+            "char_type": self.player.char_type   # 玩家选择的角色类型（Player/Rambo/Redbit）
         }
         self.ws_client.send_json(join_msg)
 
@@ -144,121 +166,73 @@ class GameView(FadingView):
     def on_ws_close(self):
         print("WS 关闭")
 
+    # -------------------- 渲染 --------------------
     def on_draw(self) -> None:
+        """绘制每一帧。"""
         self.clear()
-        self.camera_sprites.use() # 世界相机，绘制场景、玩家、敌人
+
+        # 1. 绘制世界（玩家、墙壁、子弹等）——使用世界相机
+        self.camera_sprites.use()
         self.room.draw_ground()
         self.room.draw_walls()
         self.player.draw()
 
-        # 绘制其他玩家
-        for data in self.other_players.values():
-            data["player"].draw()  # 自动绘制身体、脚、武器等
+        # 绘制远程玩家
+        self.remote_manager.draw()
 
-        # 绘制子弹
         self.player_bullet_list.draw()
 
-        self.camera_gui.use() # 切换 GUi相机，绘制准许，信息UI
-
-        # 鼠标准星
+        # 2. 绘制 GUI（准星等）——使用 GUI 相机（固定屏幕位置）
+        self.camera_gui.use()
         if self.mouse_x and self.mouse_y:
             self.mouse_sprite.draw()
 
+    # -------------------- 每帧更新 --------------------
     def on_update(self, delta_time) -> None:
-        # 先处理待决的网络数据
+        """
+        每帧更新：
+        - 处理新接收的玩家状态（同步）
+        - 更新物理世界
+        - 更新本地玩家逻辑（移动、攻击）
+        - 更新子弹
+        - 发送本地状态给服务器
+        - 平滑插值其他玩家的位置
+        """
+        # 1. 从待决缓冲区取出新数据，同步其他玩家
         with self._pending_lock:
             if self._pending_players:
-                self._sync_other_players(self._pending_players)
+                self.remote_manager.sync_from_snapshot(self._pending_players)
                 self._pending_players = []
 
+        # 2. 物理引擎步进
         self.physics_engine.step()
+
+        # 3. 更新本地玩家状态、攻击、子弹
         self.player.update()
         self.update_player_attack()
+
+        # 更新远程玩家（内部处理位置插值和攻击模拟）
+        self.remote_manager.update()
+
+        self.process_player_bullet()
+
+        # 4. 摄像机跟随本地玩家
         self.scroll_to_player()
 
-        
-        # 发送本地玩家状态给服务器
+        # 5. 发送本地玩家的位置、状态给服务器（限频）
         self._send_status_if_needed()
-        # 平滑更新其他玩家的显示位置
-        self._update_other_players_positions()
 
-    def _sync_other_players(self, players_list):
-        """在主线程中安全地更新其他玩家精灵"""
-        current_ids = set(self.other_players.keys())
-        received_ids = set()
-    
-        for p in players_list:
-            pid = p["uuid"]
-            if pid == self.player.uuid:   # 跳过自己
-                continue
-
-            received_ids.add(pid)
-            x, y = p["x"], p["y"]
-
-            if pid not in self.other_players:
-                # 新玩家
-                instance = self._create_other_player(p.get("char_type", "Player"), x, y)
-                instance.username = p.get("name", "")
-                self.other_players[pid] = {
-                    "player": instance,
-                    "target_x": p["x"],
-                    "target_y": p["y"],
-                    "current_x": p["x"],
-                    "current_y": p["y"]
-                }
-            else:
-                # 已存在玩家：更新目标位置
-                data = self.other_players[pid]
-                data["target_x"] = x
-                data["target_y"] = y
-                player = data["player"]
-                player.username = p.get("name", "")
-                player.is_walking = p.get("is_walking", False)
-                mouse_pos = p.get("mouse_pos", {})
-                player.remote_mouse_pos = Vec2(mouse_pos.get('x', 0), mouse_pos.get('y', 0))
-
-        # 移除离开的玩家
-        for pid in current_ids - received_ids:
-            if pid in self.other_players:
-                self.physics_engine.remove_sprite(self.other_players[pid]["player"])
-                del self.other_players[pid]
-
-    def _create_other_player(self, char_type: str, x: float = 0, y: float = 0) -> Player:
-        """根据角色类型创建其他玩家的完整角色实例（无物理引擎）"""
-        class_map = {
-            "Player": Player,
-            "Rambo": Rambo,
-            "Redbit": Redbit,
-        }
-        cls = class_map.get(char_type, Player)
-        # 物理引擎传 None，避免不必要的物理模拟
-        instance = cls(x, y, physics_engine=None)
-        # 可选：设置初始位置（稍后会通过 target_x/target_y 覆盖）
-        instance.center_x = x
-        instance.center_y = y
-        instance.is_remote = True
-        
-        # 手动添加为运动学物体，只参与碰撞，不主动移动
-        self.physics_engine.add_sprite(
-            instance,
-            friction=0,
-            moment_of_inertia=PymunkPhysicsEngine.MOMENT_INF,
-            damping=0,
-            collision_type="player",
-            elasticity=0.1,
-            body_type=PymunkPhysicsEngine.KINEMATIC,   # 关键！
-        )
-
-        return instance
 
     def _send_status_if_needed(self):
+        """限制频率向服务器发送本地玩家的状态（位置、动作、鼠标指向等）。"""
         now = time.time()
         if now - self.last_send_time >= self.send_interval:
             self.ws_client.send_json({
-                "type": "player_game_status", 
-                "x": self.player.pos.x, 
+                "type": "player_game_status",
+                "x": self.player.pos.x,
                 "y": self.player.pos.y,
                 "is_walking": self.player.is_walking,
+                "is_attack": self.player.is_attack,
                 "mouse_pos": {
                     "x": self.mouse_pos.x,
                     "y": self.mouse_pos.y
@@ -266,30 +240,9 @@ class GameView(FadingView):
             })
             self.last_send_time = now
 
-    def _update_other_players_positions(self):
-        for data in self.other_players.values():
-            # 线性插值
-            data["current_x"] += (data["target_x"] - data["current_x"]) * 0.2
-            data["current_y"] += (data["target_y"] - data["current_y"]) * 0.2
-            player_obj = data["player"]
-
-            # player_obj.center_x = data["current_x"]
-            # player_obj.center_y = data["current_y"]
-
-            # 🔥 关键：用物理引擎方法移动整个物体（精灵+碰撞体）
-            self.physics_engine.set_position(
-                player_obj,
-                (data["current_x"], data["current_y"])
-            )
-
-            # 调用 update()
-            player_obj.update()
-
-
-
+    # -------------------- 玩家输入处理 --------------------
     def on_key_press(self, key, modifiers) -> None:
-        """Called whenever a key is pressed."""
-
+        """键盘按下：更新移动标志。"""
         if key == arcade.key.W:
             self.player.move_up = True
         elif key == arcade.key.S:
@@ -300,7 +253,7 @@ class GameView(FadingView):
             self.player.move_right = True
 
     def on_key_release(self, key, modifiers) -> None:
-
+        """键盘释放：复位移动标志。"""
         if key == arcade.key.W:
             self.player.move_up = False
         elif key == arcade.key.S:
@@ -311,21 +264,30 @@ class GameView(FadingView):
             self.player.move_right = False
 
     def on_mouse_motion(self, x, y, dx, dy) -> None:
-        """Mouse movement."""
+        """鼠标移动：记录窗口坐标、世界坐标，更新自定义光标位置。"""
         self.mouse_x = x
         self.mouse_y = y
+        # 世界坐标 = 窗口坐标 + 摄像机偏移
         self.mouse_pos.x = self.mouse_x + self.camera_sprites.position.x
         self.mouse_pos.y = self.mouse_y + self.camera_sprites.position.y
         self.mouse_sprite.center_x = x
         self.mouse_sprite.center_y = y
 
     def on_mouse_press(self, x: int, y: int, button: int, modifiers: int) -> None:
+        """鼠标点击：左键开始攻击，右键使用技能。"""
         if button == arcade.MOUSE_BUTTON_LEFT:
             self.player.is_attack = True
         if button == arcade.MOUSE_BUTTON_RIGHT:
             self.player.use_skill()
 
+    def on_mouse_release(self, x: int, y: int, button: int, modifiers: int) -> None:
+        """鼠标释放：左键停止攻击。"""
+        if button == arcade.MOUSE_BUTTON_LEFT:
+            self.player.is_attack = False
+
+    # -------------------- 辅助功能 --------------------
     def scroll_to_player(self) -> None:
+        """摄像机平滑跟随本地玩家，并限制边界（不超出房间范围）。"""
         x = self.player.pos.x - float(self.w / 2)
         if self.player.pos.x < float(self.w / 2):
             x = 0
@@ -341,32 +303,50 @@ class GameView(FadingView):
         self.camera_sprites.move_to((x, y), CAMERA_SPEED)
 
     def resize_camera(self, width, height) -> None:
+        """窗口大小改变时，调整两个摄像机的视口大小。"""
         self.w = width
         self.h = height
         self.camera_sprites.resize(width, height)
         self.camera_gui.resize(width, height)
 
+    # -------------------- 本地玩家攻击与子弹逻辑 --------------------
     def update_player_attack(self) -> None:
+        """
+        本地玩家的攻击逻辑：根据 is_attack 标志和冷却时间发射子弹。
+        与远程玩家的攻击逻辑类似，但使用本地鼠标位置（self.mouse_pos）。
+        """
         if self.player.is_attack:
-            # 冷却时间满了
             if self.player.cd == self.player.cd_max:
                 self.player.cd = 0
 
             if self.player.cd == 0:
-
-                # 如果武器是枪
                 if self.player.current_weapon.is_gun:
-
-                    # 创建子弹
                     bullets = self.player.attack()
-
-                    self.player.current_weapon.play_sound(
-                        self.window.effect_volume)
-                    
+                    self.player.current_weapon.play_sound(self.window.effect_volume)
                     for bullet in bullets:
                         bullet.change_x = bullet.aim.x
                         bullet.change_y = bullet.aim.y
                         self.player_bullet_list.append(bullet)
-            
-        # 冷却中
+
         self.player.cd = min(self.player.cd + 1, self.player.cd_max)
+
+    def process_player_bullet(self) -> None:
+        """
+        更新所有玩家发射的子弹：
+        - 减少生命周期
+        - 碰撞检测（目前只与墙壁碰撞）
+        - 撞墙或生命周期耗尽则移除子弹
+        """
+        self.player_bullet_list.update()
+
+        for bullet in self.player_bullet_list:
+            bullet.life_span -= 1
+
+            # 仅检测与墙壁的碰撞（敌人碰撞待后续实现）
+            hit_list = arcade.check_for_collision_with_list(bullet, self.wall_list)
+            if len(hit_list) > 0:
+                bullet.remove_from_sprite_lists()
+                continue
+
+            if bullet.life_span <= 0:
+                bullet.remove_from_sprite_lists()

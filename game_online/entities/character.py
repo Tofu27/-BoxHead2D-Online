@@ -356,7 +356,6 @@ class Rambo(Player):
         super().get_damage(damage)
         self.get_energy(damage)          # 受伤加速能量获取
 
-
 class Redbit(Player):
     """Redbit 角色：消耗能量进行冲刺（技能）。"""
     
@@ -381,3 +380,79 @@ class Redbit(Player):
             self.energy -= self.energy / 10   # 能量充足时按比例消耗
         # 向物理引擎施加冲刺力（瞬间冲量）
         self.physics_engines[0].apply_force(self, (dash_dir.x, dash_dir.y))
+
+
+class RemotePlayer(Player):
+    """网络同步的远程玩家角色，支持位置插值和攻击模拟。"""
+
+    def __init__(self, char_type: str, x: float, y: float, physics_engine=None):
+        # 根据 char_type 选择合适的基类
+        class_map = {"Player": Player, "Rambo": Rambo, "Redbit": Redbit}
+        cls = class_map.get(char_type, Player)
+         # 调用父类构造，但不传入 physics_engine（后面会手动以运动学方式添加）
+        super().__init__(x, y, physics_engine=None)
+
+        self.physics_engine = physics_engine
+        self.char_type = char_type
+        self.is_remote = True
+        self.bullet_list = None
+
+        # 插值状态
+        self.target_x = x
+        self.target_y = y
+        self.current_x = x
+        self.current_y = y
+        self.smoothing = 0.2   # 插值因子
+
+        # 从服务器同步的状态
+        self.remote_is_walking = False
+        self.remote_is_attack = False
+        self.remote_mouse_pos = Vec2(0, 0)
+
+
+    def update(self):
+        """更新远程玩家位置插值、动画、攻击模拟。"""
+        # 位置插值
+        self.current_x += (self.target_x - self.current_x) * self.smoothing
+        self.current_y += (self.target_y - self.current_y) * self.smoothing
+        # 设置精灵位置（如果使用物理引擎，需通过引擎移动，否则直接设置坐标）
+        if self.physics_engine:
+            self.physics_engine.set_position(self, (self.current_x, self.current_y))
+        else:
+            self.center_x = self.current_x
+            self.center_y = self.current_y
+
+        # 更新动画（行走、空闲等）
+        self.is_walking = self.remote_is_walking
+        super().update()  # 调用父类的 update 来更新纹理、方向等
+
+        # 模拟攻击
+        self._update_remote_attack()
+
+
+    def _update_remote_attack(self):
+        """根据远程攻击标志和冷却发射子弹。"""
+        if self.is_attack:
+
+            if self.cd == self.cd_max:
+                self.cd = 0
+
+            if self.cd == 0:
+                if self.current_weapon.is_gun:
+                    bullets = self.attack()
+                    self.current_weapon.play_sound(self.window.effect_volume)  # 需要传入 window 引用
+                    for bullet in bullets:
+                        bullet.change_x = bullet.aim.x
+                        bullet.change_y = bullet.aim.y
+                        self.bullet_list.append(bullet)
+
+        self.cd = min(self.cd + 1, self.cd_max)
+
+    def apply_snapshot(self, data: dict):
+        """从服务器快照更新目标位置和状态。"""
+        self.target_x = data["x"]
+        self.target_y = data["y"]
+        self.remote_is_walking = data.get("is_walking", False)
+        self.is_attack = data.get("is_attack", False)
+        mouse = data.get("mouse_pos", {})
+        self.remote_mouse_pos = Vec2(mouse.get("x", 0), mouse.get("y", 0))

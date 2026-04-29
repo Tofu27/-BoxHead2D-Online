@@ -5,6 +5,7 @@ from utils.utils import Utils
 from pyglet.math import Vec2
 
 
+
 class Bullet(arcade.Sprite):
     """子弹基类，负责子弹的基础属性与初始化。"""
 
@@ -139,3 +140,12 @@ class Weapon(arcade.Sprite):
         :param effect_volume: 音效音量（0~20 之间的整数），除以 20 后归一化为 0~1
         """
         self.sound.play(volume=effect_volume / 20)
+
+
+
+        
+class Missile(Bullet):
+    """Missile from the Rocket."""
+
+    def __init__(self) -> None:
+        super().__init__("graphics/weapon/Missile.png", 15, 15)
