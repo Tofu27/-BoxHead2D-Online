@@ -10,7 +10,7 @@ def HttpCreatePlayer(username):
         # 2. 请求 Golang HTTP 接口
         print(f"✅ 请求创建玩家：{username}")
         response = requests.get(
-            url="http://localhost:8888/createPlayer",
+            url="http://localhost:8888/create",
             params={"name": username},
             timeout=5
         )

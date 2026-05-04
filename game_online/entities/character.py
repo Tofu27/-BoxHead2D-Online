@@ -400,8 +400,8 @@ class RemotePlayer(Player):
         self.current_weapon.aim(aim_pos)
 
     def apply_snapshot(self, data: dict):
-        self.target_x = data["x"]
-        self.target_y = data["y"]
+        self.target_x = data.get("player_pos", {}).get("x", 0)
+        self.target_y = data.get("player_pos", {}).get("y", 0)
         self.username = data["name"]
         self.remote_is_walking = data.get("is_walking", False)
         self.remote_is_attack = data.get("is_attack", False)

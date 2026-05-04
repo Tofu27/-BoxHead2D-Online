@@ -15,7 +15,7 @@ class GameWebSocketClient:
     def __init__(self,
                  serverUrl: str,
                  playerUUID: str,
-                 onGameState: Callable[[List[Dict[str, Any]]], None],
+                 onGameMsg: Callable[[List[Dict[str, Any]]], None],
                  onConnected: Optional[Callable[[], None]] = None,
                  onError: Optional[Callable[[str], None]] = None,
                  onClose: Optional[Callable[[], None]] = None):
@@ -24,14 +24,14 @@ class GameWebSocketClient:
 
         :param serverUrl: WebSocket 服务器地址，例如 "ws://127.0.0.1:8000/ws"
         :param playerUUID: 玩家唯一标识，将作为查询参数附加到 URL 中
-        :param onGameState: 接收到游戏状态消息时的回调，参数为玩家数据列表
+        :param onGameMsg: 接收到游戏状态消息时的回调，参数为玩家数据列表
         :param onConnected: 连接建立成功后的回调（用于发送 join 等初始化消息）
         :param onError: 发生致命错误时的回调
         :param onClose: 连接关闭时的回调
         """
         self.serverUrl = serverUrl
         self.playerUUID = playerUUID
-        self.onGameState = onGameState
+        self.onGameMsg = onGameMsg
         self.onConnected = onConnected
         self.onError = onError
         self.onClose = onClose
@@ -127,15 +127,16 @@ class GameWebSocketClient:
         """
         try:
             data = json.loads(rawMsg)
-            msgType = data.get("type")
-            if msgType == "game_state":
-                snapshots = data.get("snapshots", {})
-                playersData = snapshots.get("Players", [])
-                # 确保玩家数据为列表类型，否则输出警告
-                if isinstance(playersData, list):
-                    self.onGameState(playersData)
-                else:
-                    print(f"意外格式: players 不是列表，是 {type(playersData)}")
+            self.onGameMsg(data)
+            # msgType = data.get("type")
+            # if msgType == "game_state":
+            #     snapshots = data.get("snapshots", {})
+            #     playersData = snapshots.get("Players", [])
+            #     # 确保玩家数据为列表类型，否则输出警告
+            #     if isinstance(playersData, list):
+                    
+            #     else:
+            #         print(f"意外格式: players 不是列表，是 {type(playersData)}")
             # 可在此扩展其他消息类型的处理（如错误、心跳等）
         except Exception as e:
             print(f"解析消息失败: {e}")

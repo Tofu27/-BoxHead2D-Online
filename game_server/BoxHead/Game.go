@@ -466,6 +466,8 @@ func (g *BoxHead) broadcastGameState() {
 		"type":      "game_state",
 		"snapshots": map[string]interface{}{"Players": playersForMsg},
 	}
+
+	log.Println("[Game] 广播游戏状态", msg)
 	data, err := json.Marshal(msg)
 	if err != nil {
 		log.Printf("序列化消息失败: %v", err)

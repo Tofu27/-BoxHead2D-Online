@@ -15,6 +15,43 @@ class RemotePlayerManager:
         self.LocalUUID = LocalUUID
 
     def sync_from_snapshot(self, snapshot: List[dict]):
+        ReceivedUUIDs = set()
+        for data in snapshot:
+            pid = data["uuid"]
+            if pid == self.LocalUUID:
+                continue
+
+            ReceivedUUIDs.add(pid)
+
+            if pid not in self.RemotePlayers:
+                # 创建新远程玩家
+                player = RemotePlayer(
+                    char_type=data.get("char_type", "Player"),
+                    x=data.get("player_pos", {}).get("x", 0),
+                    y=data.get("player_pos", {}).get("y", 0),
+                    physics_engine=None
+                )
+                # 将玩家作为运动学刚体加入物理世界
+                self.physics_engine.add_sprite(
+                    player,
+                    friction=0,
+                    moment_of_inertia=arcade.pymunk_physics_engine.PymunkPhysicsEngine.MOMENT_INF,
+                    damping=0,
+                    collision_type="player",
+                    elasticity=0.1,
+                    body_type=arcade.pymunk_physics_engine.PymunkPhysicsEngine.KINEMATIC
+                )
+                
+                self.RemotePlayers[pid] = player
+
+    def sync_remove_absent_players(self, ReceivedUUID: str):
+        # 移除已离开的玩家
+        for pid in list(self.RemotePlayers.keys()):
+            if pid == ReceivedUUID:
+                self.physics_engine.remove_sprite(self.RemotePlayers[pid])
+                del self.RemotePlayers[pid]
+
+    def sync_from_snapshot_diff(self, snapshot: List[dict]):
         """
         根据服务器推送的快照同步玩家列表。
         snapshot 格式: [{"uuid":..., "x":..., "y":..., "char_type":..., ...}, ...]
@@ -32,8 +69,8 @@ class RemotePlayerManager:
                 # 创建新远程玩家
                 player = RemotePlayer(
                     char_type=data.get("char_type", "Player"),
-                    x=data["x"],
-                    y=data["y"],
+                    x=data.get("player_pos", {}).get("x", 0),
+                    y=data.get("player_pos", {}).get("y", 0),
                     physics_engine=None
                 )
                 # 将玩家作为运动学刚体加入物理世界
@@ -51,12 +88,6 @@ class RemotePlayerManager:
             else:
                 # 更新现有玩家
                 self.RemotePlayers[pid].apply_snapshot(data)
-
-        # 移除已离开的玩家
-        for pid in list(self.RemotePlayers.keys()):
-            if pid not in ReceivedUUIDs:
-                self.physics_engine.remove_sprite(self.RemotePlayers[pid])
-                del self.RemotePlayers[pid]
 
     def update(self):
         """更新所有远程玩家。"""
