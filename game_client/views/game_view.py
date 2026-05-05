@@ -1,4 +1,5 @@
 
+import json
 import time
 from typing import Any
 
@@ -10,11 +11,13 @@ from views.base_view import FadingView
 from core.systems.world_system import WorldSystem
 from entities.character import CreatePlayer
 from core.manager.remote_player_manager import RemotePlayerManager
+from network.ws_client import GameWebSocketClient
 from core.systems.camera_system import CameraSystem
 from core.systems.combat_system import CombatSystem
 from core.systems.bullet_system import BulletSystem
 from core.systems.network_system import NetworkSystem
-from network.ws_client import GameWebSocketClient
+from core.systems.enemy_system import EnemySystem
+from core.systems.collision_system import CollisionSystem
 
 @dataclass
 class NetworkMessage:
@@ -32,6 +35,7 @@ class GameView(FadingView):
         self.combat_sys = None
         self.bullet_sys = None
         self.network_sys = None
+        self.enemy_sys = None
 
         # 本地玩家
         self.player = None
@@ -50,6 +54,8 @@ class GameView(FadingView):
         self.last_send = 0
         self.send_interval = 0.05
 
+        self._LastWsPrintTime = 0                   # 上次打印 WebSocket 消息的时间（用于节流）
+        self._WsPrintInterval = 2.0                 # 打印间隔（秒），避免控制台刷屏
 
     def setup(self, player_meta, map):
         # 初始化世界系统
@@ -80,11 +86,12 @@ class GameView(FadingView):
             self.world_sys.physics_engine
         )
 
-        
+        self.enemy_sys = EnemySystem(self.world_sys.physics_engine)
         self.camera_sys = CameraSystem(self.camera_sprites)
         self.combat_sys = CombatSystem(self.world_sys, self.remote_sys, self.window)
         self.bullet_sys = BulletSystem(self.world_sys)
-        self.network_sys = NetworkSystem(self.message_queue, self.remote_sys, self.player.uuid)
+        self.network_sys = NetworkSystem(self.message_queue, self.remote_sys, self.enemy_sys, self.player.uuid)
+        self.collision_sys = CollisionSystem(self.world_sys, self.enemy_sys, self.remote_sys, self.player)
 
         # 5. 启动网络连接
         self.ws_client = GameWebSocketClient(
@@ -100,6 +107,7 @@ class GameView(FadingView):
         # 播放音乐...
         self.window.play_game_music(1)
 
+
     def on_update(self, delta_time):
         #消费网络消息，同步远程玩家
         self.network_sys.update()
@@ -109,19 +117,20 @@ class GameView(FadingView):
 
         # 本地玩家逻辑（移动、动画）
         self.player.update()
+        self.enemy_sys.update()
         
         # 远程玩家插值更新（不含攻击）
         self.remote_sys.update()
-
         
         # 战斗处理（攻击、生成子弹）
         self.combat_sys.update_local(self.player)
         self.combat_sys.update_remote()
 
 
-        # 子弹更新（生命、碰撞）
+        # 负责子弹 lifespan 递减
         self.bullet_sys.update()
-
+        # 碰撞检测
+        self.collision_sys.update()
 
         # 摄像机跟随
         self.camera_sys.follow(self.player,
@@ -143,6 +152,7 @@ class GameView(FadingView):
         self.world_sys.room.draw_walls()
         self.player.draw()
         self.remote_sys.draw()
+        self.enemy_sys.draw()
         self.world_sys.bullet_list.draw()
 
         # GUI 层（固定屏幕）
@@ -186,17 +196,30 @@ class GameView(FadingView):
 
     # ---------- WebSocket 回调 ----------
     def _enqueue_ws_message(self, msg: dict):
+        # 完整打印原始消息（JSON 格式）
+        now = time.time()
+        if now - self._LastWsPrintTime >= self._WsPrintInterval:
+            print(f"[WS 收到] {json.dumps(msg, ensure_ascii=False, indent=2)}")
+            self._LastWsPrintTime = now
+
         msg_type = msg.get("type")
         if msg_type == "game_state":
             players = msg.get("snapshots", {}).get("Players", [])
-            self.message_queue.put(NetworkMessage("game_state", players))
+            monsters = msg.get("snapshots", {}).get("Monsters", [])
+            self.message_queue.put(NetworkMessage("game_state", {
+                "Players": players,
+                "Monsters": monsters
+            }))
         elif msg_type == "game_state_diff":
             players = msg.get("snapshots", {}).get("Players", [])
-            self.message_queue.put(NetworkMessage("game_state_diff", players))
+            monsters = msg.get("snapshots", {}).get("Monsters", [])
+            self.message_queue.put(NetworkMessage("game_state_diff", {
+                "Players": players,
+                "Monsters": monsters
+            }))
         elif msg_type == "player_leave":
             uuid = msg.get("uuid")
             self.message_queue.put(NetworkMessage("player_leave", uuid))
-
 
     def _on_ws_connected(self):
         join_msg = {

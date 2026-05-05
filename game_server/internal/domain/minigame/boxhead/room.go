@@ -17,8 +17,11 @@ type CommandEnvelope struct {
 // 所有对玩家状态的修改、广播、定时任务都在此goroutine中串行执行，
 // 因此完全不需要锁保护players map。
 type Room struct {
-	id      string                  // 房间唯一标识
-	players map[string]*PlayerState // 所有玩家，key=UUID
+	width    float64
+	height   float64
+	id       string                  // 房间唯一标识
+	players  map[string]*PlayerState // 所有玩家，key=UUID
+	monsters map[string]*Monster     // 所有怪物，key=ID
 
 	cmdCh  chan CommandEnvelope // 命令通道：接收来自应用层的操作命令
 	stopCh chan struct{}        // 停止信号：关闭该channel即可优雅退出主循环
@@ -27,6 +30,9 @@ type Room struct {
 	// 僵尸玩家清理参数
 	cleanInterval time.Duration // 清理间隔（默认30s）
 	maxCreateAge  time.Duration // 最长允许未连接时间（默认2min）
+
+	lastLogTime time.Time
+	logInterval time.Duration
 }
 
 // 命令类型常量
@@ -56,13 +62,50 @@ var dirtyPlayerPool = sync.Pool{
 
 // NewRoom 创建一个新的房间实例
 func NewRoom(id string) *Room {
-	return &Room{
+	r := &Room{
+		width:         2100,
+		height:        1200,
 		id:            id,
 		players:       make(map[string]*PlayerState),
+		monsters:      make(map[string]*Monster),
 		cmdCh:         make(chan CommandEnvelope, 1024), // 带缓冲，避免阻塞发送者
 		stopCh:        make(chan struct{}),
 		cleanInterval: 30 * time.Second,
 		maxCreateAge:  2 * time.Minute,
+		logInterval:   2 * time.Second,
+		lastLogTime:   time.Now(),
+	}
+
+	r.initTestMonster() // 初始化测试怪物
+
+	return r
+}
+
+func (r *Room) initTestMonster() {
+	r.monsters["monster1"] = &Monster{
+		ID:         "monster1",
+		Type:       1,
+		MonsterPos: Position{X: 1050, Y: 600},
+		HP:         100,
+		Speed:      1.5,
+		Dirty:      true,
+	}
+}
+
+func (r *Room) updateMonsters() {
+	var targetPlayer *PlayerState
+	for _, p := range r.players {
+		if p.Connected {
+			targetPlayer = p
+			break
+		}
+	}
+	if targetPlayer == nil {
+		return
+	}
+
+	for _, m := range r.monsters {
+		m.Update(targetPlayer.PlayerPos.X, targetPlayer.PlayerPos.Y, r.width, r.height)
 	}
 }
 
@@ -90,7 +133,8 @@ func (r *Room) Run() {
 
 		case <-r.ticker.C:
 			// 2. 每帧广播所有玩家的完整状态（game_state）
-			r.broadcastStateDiff() // 每帧只发送脏数据（增量）
+			r.updateMonsters()
+			r.broadcastStateDiff() // 每帧只发送脏数据（增量）, 重置脏位
 
 		case <-cleanTicker.C:
 			// 3. 定期清理长时间未连接的僵尸玩家
@@ -201,21 +245,33 @@ func (r *Room) sendFullSnapshotToPlayer(target *PlayerState) {
 	if target.sendCh == nil {
 		return
 	}
-	snapshots := fullSnapshotPool.Get().([]*PlayerState)
-	snapshots = snapshots[:0]
-	defer fullSnapshotPool.Put(snapshots)
+	PlayerSnapshots := fullSnapshotPool.Get().([]*PlayerState)
+	PlayerSnapshots = PlayerSnapshots[:0]
+	defer fullSnapshotPool.Put(PlayerSnapshots)
 
 	// 收集所有已连接玩家（可选：排除目标自己，取决于客户端逻辑）
 	for _, p := range r.players {
 		if p.Connected {
-			snapshots = append(snapshots, p)
+			PlayerSnapshots = append(PlayerSnapshots, p)
 		}
+	}
+
+	MonsterSnapshots := make([]map[string]interface{}, 0, len(r.monsters))
+	for _, m := range r.monsters {
+		MonsterSnapshots = append(MonsterSnapshots, map[string]interface{}{
+			"id":   m.ID,
+			"type": m.Type,
+			"x":    m.MonsterPos.X,
+			"y":    m.MonsterPos.Y,
+			"hp":   m.HP,
+		})
 	}
 
 	msg := map[string]interface{}{
 		"type": "game_state",
 		"snapshots": map[string]interface{}{
-			"Players": snapshots,
+			"Players":  PlayerSnapshots,
+			"Monsters": MonsterSnapshots,
 		},
 	}
 
@@ -226,8 +282,11 @@ func (r *Room) sendFullSnapshotToPlayer(target *PlayerState) {
 		sent++
 	default:
 	}
-	log.Printf("[Room:%s] 📡 全量广播 %d 个实体，发送给 %d 人", r.id, len(snapshots), sent)
 
+	if time.Since(r.lastLogTime) >= r.logInterval {
+		log.Printf("[Room:%s] 发送全量快照给 %s (玩家:%d 怪物:%d)", r.id, target.Name, len(PlayerSnapshots), len(MonsterSnapshots))
+		r.lastLogTime = time.Now()
+	}
 }
 
 // ========== 增量广播：每 tick 发出 ==========
@@ -241,14 +300,36 @@ func (r *Room) broadcastStateDiff() {
 			dirtyPlayers = append(dirtyPlayers, p)
 		}
 	}
-	if len(dirtyPlayers) == 0 {
+
+	// 收集脏怪物（改为 *Monster 切片）
+	var dirtyMonsters []*Monster
+	for _, m := range r.monsters {
+		if m.Dirty {
+			dirtyMonsters = append(dirtyMonsters, m)
+		}
+	}
+
+	if len(dirtyPlayers) == 0 && len(dirtyMonsters) == 0 {
 		return
+	}
+
+	// 构建消息用的怪物列表
+	monstersForMsg := make([]map[string]interface{}, len(dirtyMonsters))
+	for i, m := range dirtyMonsters {
+		monstersForMsg[i] = map[string]interface{}{
+			"id":   m.ID,
+			"type": m.Type,
+			"x":    m.MonsterPos.X,
+			"y":    m.MonsterPos.Y,
+			"hp":   m.HP,
+		}
 	}
 
 	msg := map[string]interface{}{
 		"type": "game_state_diff",
 		"snapshots": map[string]interface{}{
-			"Players": dirtyPlayers,
+			"Players":  dirtyPlayers,
+			"Monsters": monstersForMsg,
 		},
 	}
 	data, _ := json.Marshal(msg)
@@ -265,11 +346,19 @@ func (r *Room) broadcastStateDiff() {
 		}
 	}
 
-	log.Printf("[Room:%s] 📡 增量广播 %d 个变化实体，发送给 %d 人", r.id, len(dirtyPlayers), sent)
+	if time.Since(r.lastLogTime) >= r.logInterval {
+		log.Printf("[Room:%s] 发送增量快照给 %s ==> %s", r.id, string(data))
+		r.lastLogTime = time.Now()
+	}
 
 	// 清除脏标记
 	for _, p := range dirtyPlayers {
 		p.ClearDirty()
+	}
+
+	// 清除怪物脏标记
+	for _, m := range dirtyMonsters {
+		m.Dirty = false
 	}
 }
 

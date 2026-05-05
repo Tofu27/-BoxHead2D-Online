@@ -2,12 +2,6 @@ package boxhead
 
 import "time"
 
-// Position 坐标值对象
-type Position struct {
-	X float64 `json:"x"`
-	Y float64 `json:"y"`
-}
-
 // PlayerState 玩家在游戏中的完整状态（纯数据，不包含网络连接）
 // 所有字段只能由 Room 主循环修改，外部只能通过命令间接修改
 type PlayerState struct {
