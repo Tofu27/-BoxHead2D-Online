@@ -34,7 +34,9 @@ class StartView(FadingView):
     def setup(self) -> None:
         """初始化开始菜单：播放音乐、创建物理世界、角色、墙壁、UI按钮和指南图片。"""
         # 播放开始界面音乐
-        self.window.play_start_music(0)
+        # 防止重复播放开始音乐：如果当前音乐播放器已在播放，就不重复播放
+        if self.window.start_music_player and not self.window.start_music_player.playing:
+            self.window.play_start_music(0)
 
         # 物理引擎（无重力，高阻尼）
         damping = 0.01

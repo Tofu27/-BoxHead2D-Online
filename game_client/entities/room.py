@@ -2,6 +2,8 @@ import arcade
 import math
 import utils
 from pyglet.math import Vec2
+from utils.utils import Utils
+from core.constants import Color, Style
 
 WALL_SIZE = 30          # 墙壁方块尺寸（像素）
 HALF_WALL_SIZE = 15     # 墙壁方块半长
@@ -29,7 +31,7 @@ class WallCorner(Wall):
 
     def __init__(self, x: float = 0, y: float = 0) -> None:
         super().__init__(x, y)
-        self.texture = arcade.load_texture("graphics/room/WallCorner.png")
+        self.texture = arcade.load_texture("public/graphics/room/WallCorner.png")
         # 阴影向下、向左偏移3像素
         self.shadow = arcade.Sprite(
             center_x=self.pos.x - 3,
@@ -37,7 +39,7 @@ class WallCorner(Wall):
             scale=1,
         )
         self.shadow.texture = arcade.make_soft_square_texture(
-            30, utils.Color.LIGHT_BLACK, 150, 150)
+            30, Color.LIGHT_BLACK, 150, 150)
 
 # ==================== 水平侧墙壁（上方或下方） ====================
 class WallSideHorizontal(Wall):
@@ -45,14 +47,14 @@ class WallSideHorizontal(Wall):
 
     def __init__(self, x: float = 0, y: float = 0) -> None:
         super().__init__(x, y)
-        self.texture = arcade.load_texture("graphics/room/WallSide.png")
+        self.texture = arcade.load_texture("public/graphics/room/WallSide.png")
         self.shadow = arcade.Sprite(
             center_x=self.pos.x,
             center_y=self.pos.y - 3,
             scale=1,
         )
         self.shadow.texture = arcade.make_soft_square_texture(
-            30, utils.Color.LIGHT_BLACK, 150, 150)
+            30, Color.LIGHT_BLACK, 150, 150)
 
 # ==================== 垂直侧墙壁（左侧或右侧） ====================
 class WallSideVertical(Wall):
@@ -60,7 +62,7 @@ class WallSideVertical(Wall):
 
     def __init__(self, x: float = 0, y: float = 0) -> None:
         super().__init__(x, y)
-        self.texture = arcade.load_texture("graphics/room/WallSide.png")
+        self.texture = arcade.load_texture("public/graphics/room/WallSide.png")
         self.angle = -90   # 旋转90度使其垂直
         self.shadow = arcade.Sprite(
             center_x=self.pos.x - 3,
@@ -68,7 +70,7 @@ class WallSideVertical(Wall):
             scale=1,
         )
         self.shadow.texture = arcade.make_soft_square_texture(
-            30, utils.Color.LIGHT_BLACK, 150, 150)
+            30, Color.LIGHT_BLACK, 150, 150)
 
 # ==================== 房间基类 ====================
 class Room:
@@ -97,7 +99,7 @@ class Room:
     def draw_ground(self) -> None:
         """绘制地面颜色块。"""
         arcade.draw_rectangle_filled(
-            self.pos.x, self.pos.y, self.width, self.height, utils.Color.GROUND_WHITE
+            self.pos.x, self.pos.y, self.width, self.height, Color.GROUND_WHITE
         )
 
     def draw_walls(self) -> None:
@@ -151,7 +153,7 @@ class StartRoom(Room):
 class GameRoom0(Room):
     """Game room No. 0"""
 
-    layout_sprite = arcade.Sprite("graphics/room/GameRoom0.png")
+    layout_sprite = arcade.Sprite("public/graphics/room/GameRoom0.png")
     name = "Blank room"
 
     
