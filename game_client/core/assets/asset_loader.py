@@ -31,8 +31,6 @@ class AssetLoader:
         }
 
     def _load_fonts(self):
-        # 如果有需要加载的字体，可以在这里实现
-        pass
-    # 加载自定义字体
+        # 加载自定义字体
         arcade.load_font("public/fonts/FFFFORWA.ttf")
         arcade.load_font("public/fonts/Cubic_11_1.013_R.ttf")

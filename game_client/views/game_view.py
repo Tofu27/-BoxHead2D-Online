@@ -2,14 +2,14 @@
 import time
 from typing import Any
 
-import arcade
+import arcade.pymunk_physics_engine
 import queue
-from attr import dataclass
+from dataclasses import dataclass
 from pyglet.math import Vec2
 from views.base_view import FadingView
 from core.systems.world_system import WorldSystem
 from entities.character import CreatePlayer
-from core.systems.remote_player_system import RemotePlayerManager
+from core.manager.remote_player_manager import RemotePlayerManager
 from core.systems.camera_system import CameraSystem
 from core.systems.combat_system import CombatSystem
 from core.systems.bullet_system import BulletSystem
@@ -25,7 +25,6 @@ class GameView(FadingView):
     def __init__(self):
         super().__init__()
         self.w, self.h = self.window.get_size()
-
         # 系统实例
         self.world_sys = None
         self.camera_sys = None
@@ -71,7 +70,7 @@ class GameView(FadingView):
         self.world_sys.add_sprite(self.player,
                         collision_type="player",
                         friction=0,
-                        moment_of_inertia=arcade.PymunkPhysicsEngine.MOMENT_INF,
+                        moment_of_inertia=arcade.pymunk_physics_engine.PymunkPhysicsEngine.MOMENT_INF,
                         damping=0.001,
                         elasticity=0.1)
 

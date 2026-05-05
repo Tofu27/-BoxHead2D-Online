@@ -27,12 +27,13 @@ class StartView(FadingView):
         self.camera_sys = None        # CameraSystem
 
         # 相机（用于滚动）
-        self.camera_sprites = arcade.Camera(self.w, self.h)
+        self.camera_sprites = None
 
     def setup(self):
         """初始化开始菜单：播放音乐、创建物理世界、角色、墙壁、UI按钮和指南图片。"""
         # 1. 播放音乐
-        self.window.play_start_music(0)
+        if self.window.start_music_player and not self.window.start_music_player.playing:
+            self.window.play_start_music(0)
         w, h = self.window.get_size()
         self.w, self.h = w, h
 

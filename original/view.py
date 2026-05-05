@@ -140,7 +140,8 @@ class StartView(FadingView):
 
     def setup(self) -> None:
         # Play start view BGM
-        self.window.play_start_music(0)
+        if self.window.start_music_player and not self.window.start_music_player.playing:
+            self.window.play_start_music(0)
 
         # Create the physics engine
         damping = 0.01

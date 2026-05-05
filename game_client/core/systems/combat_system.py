@@ -1,5 +1,5 @@
 from core.systems.world_system import WorldSystem
-from core.systems.remote_player_system import RemotePlayerManager
+from core.manager.remote_player_manager import RemotePlayerManager
 
 class CombatSystem:
     def __init__(self, world: WorldSystem, remote_manager: RemotePlayerManager, window):

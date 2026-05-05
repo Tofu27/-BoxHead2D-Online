@@ -1,4 +1,4 @@
-from core.systems.remote_player_system import RemotePlayerManager
+from core.manager.remote_player_manager import RemotePlayerManager
 import queue
 
 class NetworkSystem:

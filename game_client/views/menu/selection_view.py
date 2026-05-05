@@ -5,7 +5,6 @@ from core.constants import Color, Style
 from core.services.player_creator import PlayerCreator
 from entities.character import CreatePlayer, CHARACTER_REGISTRY
 from entities.room import GameRoom0
-from network.http import HttpPlayerCreator  # 保留原样
 from views.game_view import GameView
 class SelectionView(FadingView):
     """角色与地图选择视图（重构后）"""
