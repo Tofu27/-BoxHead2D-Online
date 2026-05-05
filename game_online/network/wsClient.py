@@ -128,15 +128,5 @@ class GameWebSocketClient:
         try:
             data = json.loads(rawMsg)
             self.onGameMsg(data)
-            # msgType = data.get("type")
-            # if msgType == "game_state":
-            #     snapshots = data.get("snapshots", {})
-            #     playersData = snapshots.get("Players", [])
-            #     # 确保玩家数据为列表类型，否则输出警告
-            #     if isinstance(playersData, list):
-                    
-            #     else:
-            #         print(f"意外格式: players 不是列表，是 {type(playersData)}")
-            # 可在此扩展其他消息类型的处理（如错误、心跳等）
         except Exception as e:
             print(f"解析消息失败: {e}")

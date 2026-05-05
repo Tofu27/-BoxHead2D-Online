@@ -211,6 +211,7 @@ func (s *session) readPump() {
 		switch msgType {
 		case "join":
 			// 可更新名字和角色，暂时简单忽略
+			s.cmdHandler.UpdatePlayer(s.uuid, raw)
 		case "player_game_status":
 			// 玩家状态更新（坐标、动作等）
 			s.cmdHandler.UpdatePlayer(s.uuid, raw)

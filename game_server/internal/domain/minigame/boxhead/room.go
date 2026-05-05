@@ -166,6 +166,11 @@ func (r *Room) handleCommand(cmd CommandEnvelope) {
 			}
 		}
 
+		if char_type, ok := data["char_type"].(string); ok {
+			p.CharacterType = char_type
+			changed = true
+		}
+
 		if changed {
 			p.SetDirty()
 		}
@@ -221,7 +226,7 @@ func (r *Room) sendFullSnapshotToPlayer(target *PlayerState) {
 		sent++
 	default:
 	}
-	log.Printf("[Room:%s] 📡 全量广播 %d 个实体，发送给 %d 人, ==> %v", r.id, len(snapshots), sent, data)
+	log.Printf("[Room:%s] 📡 全量广播 %d 个实体，发送给 %d 人", r.id, len(snapshots), sent)
 
 }
 
@@ -277,13 +282,10 @@ func (r *Room) broadcastPlayerLeave(leavingUUID string) {
 
 	for _, p := range r.players {
 		if p.Connected && p.sendCh != nil {
-			// select {
-			// case p.sendCh <- data:
-			// default:
-			// }
-			// 阻塞发送，保证必达（房间主循环会短暂停在此处）
-			p.sendCh <- data
-			log.Printf("[Room:%s] 📦 已发送离开消息给 %s(%s)", r.id, p.Name, p.UUID)
+			select {
+			case p.sendCh <- data:
+			default:
+			}
 		}
 	}
 }

@@ -12,6 +12,14 @@ import time
 import threading
 from network.wsClient import GameWebSocketClient
 from network.remoteManager import RemotePlayerManager
+from dataclasses import dataclass
+from typing import Any, Dict, List
+import queue
+
+@dataclass
+class NetworkMessage:
+    type: str               # "game_state", "game_state_diff", "player_leave", "reset"
+    payload: Any = None     # 相应数据
 
 
 class GameView(FadingView):
@@ -28,11 +36,9 @@ class GameView(FadingView):
         super().__init__()
 
         # ----- 多人联机相关 -----
+        self._message_queue = queue.Queue()   # 线程安全队列
         self.RemoteManager = None   # 将在 setup 中初始化
         self.WsClient = None                        # WebSocket 客户端实例
-        self._PendingPlayers = []
-        self._PendingPlayersDiff = []                   # 临时存储从服务器接收的玩家快照（待主线程处理）
-        self._PendingLock = threading.Lock()        # 保护 _PendingPlayersDiff 的线程锁
         self.LastSendTime = 0                       # 上次向服务器发送状态的时间戳
         self.SendInterval = 0.05                    # 发送间隔（秒），约20Hz，匹配服务器 tick 频率
         self._LastWsPrintTime = 0                   # 上次打印 WebSocket 消息的时间（用于节流）
@@ -72,7 +78,7 @@ class GameView(FadingView):
         self.WsClient = GameWebSocketClient(
             serverUrl="ws://localhost:8888/ws",
             playerUUID=player_meta['uuid'],
-            onGameMsg=self.on_ws_game_msg,      # 接收游戏状态的回调
+            onGameMsg=self._enqueue_ws_message,      # 接收游戏状态的回调
             onConnected=self.on_ws_connected,     # 连接成功后发送 join 消息
             onError=self.on_ws_error,
             onClose=self.on_ws_close
@@ -134,41 +140,29 @@ class GameView(FadingView):
         )
 
     # -------------------- WebSocket 回调函数（由子线程调用）--------------------
-    def on_ws_game_msg(self, Msg):
-        """
-        服务器推送所有玩家状态时回调。
-        运行在 WebSocket 子线程中，仅存储数据到 _pending_players，
-        避免在多线程中直接操作游戏主线程的精灵。
-        """
-        now = time.time()
-        # 控制台输出节流，避免刷屏
-        if now - self._LastWsPrintTime >= self._WsPrintInterval:
-            print("ws消息 (节流):", Msg)
-            self._LastWsPrintTime = now
+    def _enqueue_ws_message(self, msg: dict):
+        """由 WS 线程调用，仅将消息放入队列。"""
+        msg_type = msg.get("type")
+        
 
-        msgType = Msg.get("type")
+        if msg_type == "game_state":
+            players = msg.get("snapshots", {}).get("Players", [])
+            self._message_queue.put(NetworkMessage("game_state", players))
+            print("ws消息 (节流):", msg)
 
-        match msgType:
-            case "game_state":
-                snapshots = Msg.get("snapshots", {})
-                playersData = snapshots.get("Players", [])
-                with self._PendingLock:
-                    self._PendingPlayers = playersData
-                    return
+        elif msg_type == "game_state_diff":
+            players = msg.get("snapshots", {}).get("Players", [])
+            self._message_queue.put(NetworkMessage("game_state_diff", players))
+            
+            now = time.time()
+            if now - self._LastWsPrintTime >= self._WsPrintInterval:
+                print("ws消息 (节流):", msg)
+                self._LastWsPrintTime = now
 
-            case "game_state_diff":
-                snapshots = Msg.get("snapshots", {})
-                playersData = snapshots.get("Players", [])
-                with self._PendingLock:
-                    self._PendingPlayersDiff = playersData   # 替换为新快照
-                    return
-
-            case "player_leave":
-                print("ws消息 (节流):", Msg)
-                uuid = Msg.get("uuid")
-                with self._PendingLock:
-                    self.RemoteManager.sync_remove_absent_players(uuid)
-                    return
+        elif msg_type == "player_leave":
+            uuid = msg.get("uuid")
+            self._message_queue.put(NetworkMessage("player_leave", uuid))
+            print("ws消息 (节流):", msg)
 
     def on_ws_connected(self):
         """WebSocket 连接成功后调用（子线程）。发送 join 消息通知服务器该玩家加入。"""
@@ -184,7 +178,8 @@ class GameView(FadingView):
         print("WS 报错:", err)
 
     def on_ws_close(self):
-        print("WS 关闭")
+        """连接断开时，通知主线程清除所有远程玩家。"""
+        self._message_queue.put(NetworkMessage("reset"))
 
     # -------------------- 渲染 --------------------
     def on_draw(self) -> None:
@@ -218,16 +213,9 @@ class GameView(FadingView):
         - 发送本地状态给服务器
         - 平滑插值其他玩家的位置
         """
-        # 1. 从待决缓冲区取出新数据，同步其他玩家
-        with self._PendingLock:
-            if self._PendingPlayers:
-                self.RemoteManager.sync_from_snapshot(self._PendingPlayers)
-                self._PendingPlayers = []
-
-            if self._PendingPlayersDiff:
-                self.RemoteManager.sync_from_snapshot_diff(self._PendingPlayersDiff)
-                self._PendingPlayersDiff = []
-
+        # 1. 消费所有网络消息
+        self._process_network_messages()
+        
         # 2. 物理引擎步进
         self.physics_engine.step()
 
@@ -246,6 +234,23 @@ class GameView(FadingView):
 
         # 5. 发送本地玩家的位置、状态给服务器（限频）
         self._send_status_if_needed()
+
+
+    def _process_network_messages(self):
+        """在主线程中处理所有待处理的网络消息。"""
+        while not self._message_queue.empty():
+            try:
+                msg = self._message_queue.get_nowait()
+                if msg.type == "game_state":
+                    self.RemoteManager.apply_full_snapshot(msg.payload)
+                elif msg.type == "game_state_diff":
+                    self.RemoteManager.apply_diff_snapshot(msg.payload)
+                elif msg.type == "player_leave":
+                    self.RemoteManager.remove_player(msg.payload)
+                elif msg.type == "reset":
+                    self.RemoteManager.clear_all()
+            except queue.Empty:
+                break
 
     def _send_status_if_needed(self):
         """限制频率向服务器发送本地玩家的状态（位置、动作、鼠标指向等）。"""
