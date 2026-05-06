@@ -72,7 +72,7 @@ func (h *Handler) HandleCreatePlayer(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: time.Now(),
 	}
 	// 通过命令处理器将玩家加入房间（异步，通过channel）
-	h.cmdHandler.JoinRoom(player)
+	h.cmdHandler.CreatePlayer(player)
 
 	// 返回成功响应
 	resp := map[string]interface{}{
@@ -211,7 +211,7 @@ func (s *session) readPump() {
 		switch msgType {
 		case "join":
 			// 可更新名字和角色，暂时简单忽略
-			s.cmdHandler.UpdatePlayer(s.uuid, raw)
+			s.cmdHandler.JoinRoom(raw)
 		case "player_game_status":
 			// 玩家状态更新（坐标、动作等）
 			s.cmdHandler.UpdatePlayer(s.uuid, raw)

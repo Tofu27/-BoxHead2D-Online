@@ -35,14 +35,6 @@ type Room struct {
 	logInterval time.Duration
 }
 
-// 命令类型常量
-const (
-	CmdJoin       = "join"        // 玩家加入房间
-	CmdLeave      = "leave"       // 玩家离开房间
-	CmdUpdate     = "update"      // 玩家状态更新（位置、动作等）
-	CmdBindSendCh = "bind_sendch" // 绑定玩家的发送通道（WebSocket连接建立后）
-)
-
 // ---------- 对象池 ----------
 // 用于存储快照切片的sync.Pool，大幅减少高频广播带来的内存分配和GC压力
 
@@ -63,8 +55,6 @@ var dirtyPlayerPool = sync.Pool{
 // NewRoom 创建一个新的房间实例
 func NewRoom(id string) *Room {
 	r := &Room{
-		width:         2100,
-		height:        1200,
 		id:            id,
 		players:       make(map[string]*PlayerState),
 		monsters:      make(map[string]*Monster),
@@ -83,12 +73,15 @@ func NewRoom(id string) *Room {
 
 func (r *Room) initTestMonster() {
 	r.monsters["monster1"] = &Monster{
-		ID:         "monster1",
-		Type:       1,
-		MonsterPos: Position{X: 1050, Y: 600},
-		HP:         100,
-		Speed:      1.5,
-		Dirty:      true,
+		ID:            "monster1",
+		CharacterType: 0,
+		MonsterPos:    Position{X: 1050, Y: 600},
+		HP:            100,
+		Speed:         4,
+
+		Width:  20,
+		Height: 30,
+		Dirty:  true,
 	}
 }
 
@@ -127,14 +120,28 @@ func (r *Room) Run() {
 
 	for {
 		select {
-		case cmd := <-r.cmdCh:
-			// 1. 处理外部命令（玩家创建、离开、状态更新、绑定通道）
-			r.handleCommand(cmd)
+		// case cmd := <-r.cmdCh:
+		// 	// 1. 处理外部命令（玩家创建、离开、状态更新、绑定通道）
+		// 	r.handleCommand(cmd)
+
+		// case <-r.ticker.C:
+		// 	// 2. 每帧广播所有玩家的完整状态（game_state）
+		// 	r.updateMonsters()
+		// 	r.broadcastStateDiff() // 每帧只发送脏数据（增量）, 重置脏位
 
 		case <-r.ticker.C:
-			// 2. 每帧广播所有玩家的完整状态（game_state）
+			// 先排空所有已在 cmdCh 中等待的命令，保证状态最新
+			for {
+				select {
+				case cmd := <-r.cmdCh:
+					r.handleCommand(cmd)
+				default:
+					goto doneDrain
+				}
+			}
+		doneDrain:
 			r.updateMonsters()
-			r.broadcastStateDiff() // 每帧只发送脏数据（增量）, 重置脏位
+			r.broadcastStateDiff()
 
 		case <-cleanTicker.C:
 			// 3. 定期清理长时间未连接的僵尸玩家
@@ -156,18 +163,48 @@ func (r *Room) Stop() {
 // handleCommand 命令分发处理（所有玩家状态修改都在此方法内完成，保证线程安全）
 func (r *Room) handleCommand(cmd CommandEnvelope) {
 	switch cmd.Type {
-	case CmdJoin:
-		// 玩家加入：从Payload取PlayerState，存入players map
+	case CmdCreatePlayer:
 		player := cmd.Payload.(*PlayerState)
-		log.Printf("[Room:%s] 📥 玩家加入: UUID=%s, Name=%s", r.id, player.UUID, player.Name)
 		r.players[player.UUID] = player
+		log.Printf("[Room:%s] 📥 创建玩家: UUID=%s, Name=%s", r.id, player.UUID, player.Name)
+
+	case CmdJoin:
+		data := cmd.Payload.(map[string]interface{})
+
+		// 1. 从 player 对象中取出 uuid，并更新已有玩家信息
+		if playerData, ok := data["player"].(map[string]interface{}); ok {
+			uuid, _ := playerData["uuid"].(string)
+			if p, ok := r.players[uuid]; ok {
+				if name, ok := playerData["name"].(string); ok && p.Name != name {
+					p.Name = name
+					p.SetDirty()
+				}
+				if ct, ok := playerData["char_type"].(string); ok && p.CharacterType != ct {
+					p.CharacterType = ct
+					p.SetDirty()
+				}
+			}
+		}
+
+		// 2. 设置房间尺寸
+		if roomData, ok := data["room"].(map[string]interface{}); ok {
+			if w, ok := roomData["width"].(float64); ok {
+				r.width = w
+			}
+			if h, ok := roomData["height"].(float64); ok {
+				r.height = h
+			}
+		}
+
+		log.Printf("[Room:%s] 💬 玩家 WebSocket 加入，房间尺寸=%.0f x %.0f", r.id, r.width, r.height)
+
 	case CmdLeave:
 		// 玩家离开：从map删除
 		uuid := cmd.Payload.(string)
 		if p, ok := r.players[uuid]; ok {
 			delete(r.players, uuid)
-			log.Printf("[Room:%s] 玩家离开: %s", r.id, p.Name)
 			r.broadcastPlayerLeave(uuid) // 广播离开消息
+			log.Printf("[Room:%s] 玩家离开: %s", r.id, p.Name)
 		}
 	case CmdUpdate:
 		// 玩家状态更新（移动、行走、攻击等）
@@ -259,11 +296,14 @@ func (r *Room) sendFullSnapshotToPlayer(target *PlayerState) {
 	MonsterSnapshots := make([]map[string]interface{}, 0, len(r.monsters))
 	for _, m := range r.monsters {
 		MonsterSnapshots = append(MonsterSnapshots, map[string]interface{}{
-			"id":   m.ID,
-			"type": m.Type,
-			"x":    m.MonsterPos.X,
-			"y":    m.MonsterPos.Y,
-			"hp":   m.HP,
+			"id":         m.ID,
+			"char_type":  m.CharacterType,
+			"x":          m.MonsterPos.X,
+			"y":          m.MonsterPos.Y,
+			"hp":         m.HP,
+			"width":      m.Width,
+			"height":     m.Height,
+			"is_walking": m.IsWalking,
 		})
 	}
 
@@ -317,11 +357,12 @@ func (r *Room) broadcastStateDiff() {
 	monstersForMsg := make([]map[string]interface{}, len(dirtyMonsters))
 	for i, m := range dirtyMonsters {
 		monstersForMsg[i] = map[string]interface{}{
-			"id":   m.ID,
-			"type": m.Type,
-			"x":    m.MonsterPos.X,
-			"y":    m.MonsterPos.Y,
-			"hp":   m.HP,
+			"id":         m.ID,
+			"char_type":  m.CharacterType,
+			"x":          m.MonsterPos.X,
+			"y":          m.MonsterPos.Y,
+			"hp":         m.HP,
+			"is_walking": m.IsWalking,
 		}
 	}
 

@@ -224,9 +224,15 @@ class GameView(FadingView):
     def _on_ws_connected(self):
         join_msg = {
             "type": "join",
-            "uuid": self.player.uuid,
-            "name": self.player.username,
-            "char_type": self.player.char_type
+            "player": {
+                "uuid": self.player.uuid,
+                "name": self.player.username,
+                "char_type": self.player.char_type,
+            },
+            "room": {
+                "width": self.world_sys.room.width,    # 新增
+                "height": self.world_sys.room.height   # 新增
+            }
         }
         self.ws_client.SendJsonMsg(join_msg)
 

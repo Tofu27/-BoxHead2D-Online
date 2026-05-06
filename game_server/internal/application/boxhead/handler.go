@@ -15,11 +15,18 @@ func NewCommandHandler(room *domain.Room) *CommandHandler {
 	return &CommandHandler{room: room}
 }
 
+func (h *CommandHandler) CreatePlayer(player *domain.PlayerState) {
+	h.room.SendCommand(domain.CommandEnvelope{
+		Type:    domain.CmdCreatePlayer,
+		Payload: player,
+	})
+}
+
 // JoinRoom 玩家加入房间：直接传递完整的PlayerState对象
-func (h *CommandHandler) JoinRoom(player *domain.PlayerState) {
+func (h *CommandHandler) JoinRoom(data map[string]interface{}) {
 	h.room.SendCommand(domain.CommandEnvelope{
 		Type:    domain.CmdJoin,
-		Payload: player,
+		Payload: data,
 	})
 }
 

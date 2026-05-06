@@ -130,29 +130,28 @@ class Character(arcade.Sprite):
         self.body_move_frames -= 1
         self.body.center_y += BODY_ANIM[self.body_move_frames]
 
-
     
     def register_dir_field(self, dir_field: dict) -> None:
         self.dir_field = dir_field
 
-    def follow_dir(self) -> None:
-        grid_x = int(self.center_x / Utils.WALL_SIZE)
-        grid_y = int(self.center_y / Utils.WALL_SIZE)
-        self.force = self.dir_field[(grid_x, grid_y)]
-        self.force = self.force.scale(self.speed)
 
-        # Since the character collider are square,
-        # it is still possible to be stuck with a wall.
-        cur_pos = Vec2(self.center_x, self.center_y)
-        if cur_pos.distance(self.last_pos) < 0.0001 and self.is_walking:
-            # Apply opposite force to avoid
-            self.force.x = random.choice([-1.0, 1.0])
-            self.force.y = random.choice([-1.0, 1.0])
-            self.force = self.force.scale(10 * self.speed)
+    def update_walk_anim(self):
+        """根据 is_walking 更新脚部动画"""
+        if self.walking_frames == 0:
+            self.walking_frames = self.walking_frames_max
+        self.walking_frames -= 1
 
-        self.physics_engines[0].apply_force(
-            self, (self.force.x, self.force.y))
-        self.last_pos = cur_pos
+        if self.is_walking:
+            self.foot_l.center_x += L_WALK_X[self.walking_frames]
+            self.foot_l.center_y += L_WALK_Y[self.walking_frames]
+            self.foot_r.center_x += R_WALK_X[self.walking_frames]
+            self.foot_r.center_y += R_WALK_Y[self.walking_frames]
+        else:
+            self.foot_l.center_x = self.foot_l_pos.x + self.pos.x
+            self.foot_l.center_y = self.foot_l_pos.y + self.pos.y
+            self.foot_r.center_x = self.foot_r_pos.x + self.pos.x
+            self.foot_r.center_y = self.foot_r_pos.y + self.pos.y
+            self.walking_frames = self.walking_frames_max
 
 
 # ==================== 行为组件 ====================
@@ -240,7 +239,7 @@ class Player(Character):
         super().update_body_anim()
         self._update_control()        # 子类实现
         self._update_weapon()
-        self._update_walk_anim()
+        self.update_walk_anim()
 
     def _update_control(self):
         """子类覆盖：处理移动、攻击触发"""
@@ -255,23 +254,7 @@ class Player(Character):
         self.current_weapon.pos = self.pos + self.weapon_pos
         self.current_weapon.update()
 
-    def _update_walk_anim(self):
-        """根据 is_walking 更新脚部动画"""
-        if self.walking_frames == 0:
-            self.walking_frames = self.walking_frames_max
-        self.walking_frames -= 1
-
-        if self.is_walking:
-            self.foot_l.center_x += L_WALK_X[self.walking_frames]
-            self.foot_l.center_y += L_WALK_Y[self.walking_frames]
-            self.foot_r.center_x += R_WALK_X[self.walking_frames]
-            self.foot_r.center_y += R_WALK_Y[self.walking_frames]
-        else:
-            self.foot_l.center_x = self.foot_l_pos.x + self.pos.x
-            self.foot_l.center_y = self.foot_l_pos.y + self.pos.y
-            self.foot_r.center_x = self.foot_r_pos.x + self.pos.x
-            self.foot_r.center_y = self.foot_r_pos.y + self.pos.y
-            self.walking_frames = self.walking_frames_max
+    
 
     def draw(self) -> None:
         if self.current_weapon.is_right:
