@@ -1,0 +1,21 @@
+
+// protoc -I="proto" --go_out="server" "proto/packets.proto"
+// protoc --python_out=client/core/proto proto/game.proto
+syntax = "proto3";
+
+package packets;
+
+option go_package = "pkg/packets";
+
+message ChatMessage {
+    string msg = 1;
+}
+
+
+message Packet {
+    uint64 sender_id = 1;
+
+    oneof msg {
+        ChatMessage chat = 2;
+    }
+}

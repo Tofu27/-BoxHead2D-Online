@@ -2,12 +2,15 @@ import arcade
 import view
 import utils
 import pickle
-
+import os
 
 class BoxHead2d(arcade.Window):
     """ Main application class. """
 
     def __init__(self):
+        # 自动创建 data 目录（如果不存在）
+        os.makedirs("data", exist_ok=True)
+
         # Load settings
         try:
             settings = pickle.load(open("data/settings.bin", "rb"))
@@ -15,8 +18,9 @@ class BoxHead2d(arcade.Window):
             settings = utils.Setting(e_volume=2,
                                      m_volume=2,
                                      r_idx=0,
-                                     fullscreen=True,
+                                     fullscreen=False,
                                      lang_idx=0)
+            
             pickle.dump(settings, open("data/settings.bin", "wb"))
 
         self.effect_volume = settings.effect_volume
@@ -25,8 +29,10 @@ class BoxHead2d(arcade.Window):
         self.lang = [utils.Language.EN, utils.Language.CN]
         self.lang_idx = settings.lang_idx
         self.cur_lang = self.lang[self.lang_idx]
+        
         self.w_scale = [1024, 1280, 1440, 1920]
         self.h_scale = [600, 720, 900, 1080]
+
         super().__init__(self.w_scale[self.res_index],
                          self.h_scale[self.res_index],
                          self.cur_lang.TITLE)
