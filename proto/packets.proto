@@ -11,11 +11,18 @@ message ChatMessage {
     string msg = 1;
 }
 
+// 仅包含 ID 的消息示例
+message IdMessage {
+    // id: 唯一标识（例如玩家 id）
+    uint64 id = 1;
+}
+
 
 message Packet {
     uint64 sender_id = 1;
 
     oneof msg {
         ChatMessage chat = 2;
+        IdMessage id = 3;
     }
 }

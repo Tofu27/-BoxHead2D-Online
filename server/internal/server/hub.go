@@ -1,15 +1,64 @@
 package server
 
 import (
+	"log"
+	"net/http"
 	"server/internal/server/interfaces"
 	"server/internal/server/objects"
+	"server/pkg/packets"
 )
 
 type Hub struct {
-	Clients *objects.SharedCollection[interfaces.ClientInterfacer]
+	Clients *objects.SyncIDMap[interfaces.ClientInterfacer]
+
+	BroadcastChan  chan *packets.Packet
+	RegisterChan   chan interfaces.ClientInterfacer
+	UnRegisterChan chan interfaces.ClientInterfacer
 }
 
 func NewHub() *Hub {
 
-	return &Hub{}
+	return &Hub{
+		Clients: objects.NewSyncIDMap[interfaces.ClientInterfacer](),
+
+		BroadcastChan:  make(chan *packets.Packet),
+		RegisterChan:   make(chan interfaces.ClientInterfacer),
+		UnRegisterChan: make(chan interfaces.ClientInterfacer),
+	}
+}
+
+func (h *Hub) Run() {
+	log.Println("等待客户端注册...")
+
+	for {
+		select {
+		case client := <-h.RegisterChan:
+			client.Initialize(uint64(h.Clients.Add(client)))
+
+		case client := <-h.UnRegisterChan:
+			h.Clients.Remove(client.Id())
+
+		case packet := <-h.BroadcastChan:
+			h.Clients.ForEach(func(clientId uint64, client interfaces.ClientInterfacer) {
+				if clientId != packet.SenderId {
+					client.HandleIncomingMessage(packet.SenderId, packet.Msg)
+				}
+			})
+		}
+	}
+}
+
+func (h *Hub) Serve(getNewClient func(*Hub, http.ResponseWriter, *http.Request) (interfaces.ClientInterfacer, error), writer http.ResponseWriter, request *http.Request) {
+	log.Println("新客户端已连接，地址：", request.RemoteAddr)
+
+	client, err := getNewClient(h, writer, request)
+
+	if err != nil {
+		log.Printf("新连接获取客户端时出错：%v", err)
+		return
+	}
+
+	h.RegisterChan <- client
+	go client.RunWriteLoop()
+	go client.RunReadLoop()
 }
