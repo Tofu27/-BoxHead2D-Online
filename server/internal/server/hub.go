@@ -3,6 +3,7 @@ package server
 import (
 	"log"
 	"net/http"
+	"server/internal/server/db"
 	"server/internal/server/interfaces"
 	"server/internal/server/objects"
 	"server/pkg/packets"
@@ -16,7 +17,7 @@ type Hub struct {
 	UnRegisterChan chan interfaces.ClientInterfacer
 }
 
-func NewHub() *Hub {
+func NewHub(queries *db.Queries) *Hub {
 
 	return &Hub{
 		Clients: objects.NewSyncIDMap[interfaces.ClientInterfacer](),

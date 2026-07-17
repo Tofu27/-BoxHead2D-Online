@@ -65,7 +65,6 @@ class GlobalState:
         self._current_state = state
         self._current_view = view
 
-        print(f"切换到状态: {state.name}")
 
     @property
     def current_state(self) -> AppState:

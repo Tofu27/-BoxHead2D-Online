@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"server/internal/server"
 	"server/internal/server/clients"
+	"server/internal/server/database"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var (
@@ -14,7 +17,16 @@ var (
 )
 
 func main() {
-	hub := server.NewHub()
+	flag.Parse()
+
+	// 1. 初始化数据库
+	db, err := database.New("./data/game.db")
+	if err != nil {
+		log.Fatalf("数据库初始化失败: %v", err)
+	}
+	defer db.Close()
+
+	hub := server.NewHub(db.Queries)
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		hub.Serve(clients.NewWebSocketClient, w, r)
