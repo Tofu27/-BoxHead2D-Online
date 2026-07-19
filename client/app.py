@@ -6,6 +6,7 @@ from core.global_state import GlobalState, AppState
 from core.ws_client import WSClient
 from views.entered_view import EnteredView
 from views.connected_view import ConnectedView
+from views.inhall_view import InHallView
 
 class BoxHead2d(arcade.Window):
     def __init__(self):
@@ -23,9 +24,11 @@ class BoxHead2d(arcade.Window):
         # 3. 注册所有状态视图
         entered_view = EnteredView()
         connected_view = ConnectedView()
+        inhall_view = InHallView()
 
         self.g.register_state(AppState.ENTERED, entered_view, "ENTERED")
         self.g.register_state(AppState.CONNECTED, connected_view, "CONNECTED")
+        self.g.register_state(AppState.INHALL, inhall_view, "INHALL")
 
         # 4. 切换到初始状态：ENTERED（自动连接服务器）
         self.g.switch_to(AppState.ENTERED)

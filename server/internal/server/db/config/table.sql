@@ -10,4 +10,4 @@ CREATE TABLE IF NOT EXISTS players (
     user_id INTEGER NOT NULL,
     name TEXT NOT NULL UNIQUE,
     FOREIGN KEY(user_id) REFERENCES users(id)
-)
+);

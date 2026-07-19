@@ -22,8 +22,9 @@ func main() {
 	// 1. 初始化数据库
 	dbPool, err := sql.Open("sqlite", "cmd/db.sqlite")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("数据库打开失败: %v", err)
 	}
+	defer dbPool.Close()
 
 	hub := server.NewHub(dbPool)
 

@@ -6,6 +6,7 @@ from typing import Dict, Optional
 class AppState(Enum):
     ENTERED = auto()      # 进入应用，连接服务器
     CONNECTED = auto()    # 已连接，显示登录界面
+    INHALL = auto()       # 已登录，进入大厅
 
 
 class GlobalState:

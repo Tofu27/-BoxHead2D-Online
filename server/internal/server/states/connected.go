@@ -39,7 +39,7 @@ func (c *Connected) OnEnter() {
 }
 
 func (c *Connected) HandleMessage(senderId uint64, message packets.Msg) {
-	c.logger.Printf("接收到来自客户端 %d 的消息，类型：%T", senderId, message)
+	c.logger.Printf("接收到来自客户端 %d 的消息：%+v", senderId, message)
 
 	switch message := message.(type) {
 	case *packets.Packet_LoginRequest:
@@ -69,7 +69,7 @@ func (c *Connected) handleLoginRequest(senderId uint64, message *packets.Packet_
 		return
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(message.LoginRequest.Username))
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(message.LoginRequest.Password))
 	if err != nil {
 		c.logger.Printf("用户输入了错误的密码: %s", username)
 		c.client.SendToSelf(genericFailMessage)

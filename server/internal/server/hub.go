@@ -9,7 +9,12 @@ import (
 	"server/internal/server/interfaces"
 	"server/internal/server/objects"
 	"server/pkg/packets"
+
+	_ "embed"
 )
+
+//go:embed db/config/table.sql
+var schemaGenSql string
 
 type Hub struct {
 	Clients *objects.SyncIDMap[interfaces.ClientInterfacer]
@@ -42,6 +47,12 @@ func NewHub(dbPool *sql.DB) *Hub {
 func (h *Hub) Run() {
 	log.Println("等待客户端注册...")
 
+	log.Println("数据库初始化中...")
+	if _, err := h.dbPool.ExecContext(context.Background(), schemaGenSql); err != nil {
+		log.Fatalf("数据库初始化失败: %v", err)
+	}
+
+	log.Println("等待客户端链接...")
 	for {
 		select {
 		case client := <-h.RegisterChan:
