@@ -4,6 +4,12 @@
 
 package db
 
+type Player struct {
+	ID     int64
+	UserID int64
+	Name   string
+}
+
 type User struct {
 	ID           int64
 	Username     string

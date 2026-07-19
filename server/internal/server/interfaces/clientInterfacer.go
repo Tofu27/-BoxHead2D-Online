@@ -1,6 +1,15 @@
 package interfaces
 
-import "server/pkg/packets"
+import (
+	"context"
+	"server/internal/server/db"
+	"server/pkg/packets"
+)
+
+type DbTx struct {
+	Ctx     context.Context
+	Queries *db.Queries
+}
 
 type ClientStateHandler interface {
 	Name() string
@@ -24,4 +33,6 @@ type ClientInterfacer interface {
 	Shutdown(reason string)
 
 	SetState(newState ClientStateHandler)
+
+	DbTx() *DbTx
 }

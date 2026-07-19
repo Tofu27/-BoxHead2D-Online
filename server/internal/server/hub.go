@@ -1,6 +1,8 @@
 package server
 
 import (
+	"context"
+	"database/sql"
 	"log"
 	"net/http"
 	"server/internal/server/db"
@@ -15,9 +17,17 @@ type Hub struct {
 	BroadcastChan  chan *packets.Packet
 	RegisterChan   chan interfaces.ClientInterfacer
 	UnRegisterChan chan interfaces.ClientInterfacer
+	dbPool         *sql.DB
 }
 
-func NewHub(queries *db.Queries) *Hub {
+func (h *Hub) NewDbTx() *interfaces.DbTx {
+	return &interfaces.DbTx{
+		Ctx:     context.Background(),
+		Queries: db.New(h.dbPool),
+	}
+}
+
+func NewHub(dbPool *sql.DB) *Hub {
 
 	return &Hub{
 		Clients: objects.NewSyncIDMap[interfaces.ClientInterfacer](),
@@ -25,6 +35,7 @@ func NewHub(queries *db.Queries) *Hub {
 		BroadcastChan:  make(chan *packets.Packet),
 		RegisterChan:   make(chan interfaces.ClientInterfacer),
 		UnRegisterChan: make(chan interfaces.ClientInterfacer),
+		dbPool:         dbPool,
 	}
 }
 

@@ -9,6 +9,27 @@ import (
 	"context"
 )
 
+const createPlayer = `-- name: CreatePlayer :one
+INSERT INTO players (
+    user_id, name
+) VALUES (
+    ?, ?
+)
+RETURNING id, user_id, name
+`
+
+type CreatePlayerParams struct {
+	UserID int64
+	Name   string
+}
+
+func (q *Queries) CreatePlayer(ctx context.Context, arg CreatePlayerParams) (Player, error) {
+	row := q.db.QueryRowContext(ctx, createPlayer, arg.UserID, arg.Name)
+	var i Player
+	err := row.Scan(&i.ID, &i.UserID, &i.Name)
+	return i, err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (
     username, password_hash
@@ -27,6 +48,31 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	row := q.db.QueryRowContext(ctx, createUser, arg.Username, arg.PasswordHash)
 	var i User
 	err := row.Scan(&i.ID, &i.Username, &i.PasswordHash)
+	return i, err
+}
+
+const getPlayerByName = `-- name: GetPlayerByName :one
+SELECT id, user_id, name FROM players
+WHERE name LIKE ?
+LIMIT 1
+`
+
+func (q *Queries) GetPlayerByName(ctx context.Context, name string) (Player, error) {
+	row := q.db.QueryRowContext(ctx, getPlayerByName, name)
+	var i Player
+	err := row.Scan(&i.ID, &i.UserID, &i.Name)
+	return i, err
+}
+
+const getPlayerByUserID = `-- name: GetPlayerByUserID :one
+SELECT id, user_id, name FROM players
+WHERE user_id = ? LIMIT 1
+`
+
+func (q *Queries) GetPlayerByUserID(ctx context.Context, userID int64) (Player, error) {
+	row := q.db.QueryRowContext(ctx, getPlayerByUserID, userID)
+	var i Player
+	err := row.Scan(&i.ID, &i.UserID, &i.Name)
 	return i, err
 }
 

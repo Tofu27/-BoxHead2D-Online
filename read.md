@@ -14,8 +14,16 @@
 
 
 安装 sqlc
-    Go 用户 (通用):  go install github.com/kyleconroy/sqlc/cmd/sqlc@latest
+    Go 用户 (通用):  go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
     安装完成后，在终端运行 sqlc version 来验证是否成功。
+
+    推荐方案：直接下载预编译的 sqlc 二进制文件（无需编译）
+    这是最快最省事的方法，因为 sqlc 官方提供了 Windows 可执行文件。
+    访问 sqlc 的 GitHub Releases 页面：
+    https://github.com/sqlc-dev/sqlc/releases
+    找到最新版本（如 v1.28.0），在 Assets 中下载 sqlc_1.28.0_windows_amd64.zip（或类似名称）。
+    解压得到 sqlc.exe，将它放到一个已经存在于 PATH 的目录，比如 C:\Windows\System32 或你的 Go 的 bin 目录（C:\Users\Administrator\go\bin），也可以新建一个文件夹并将路径加入 PATH。
+    
 
     在包含 sqlc.yml 的目录下，打开终端执行以下命令：
     sqlc generate
