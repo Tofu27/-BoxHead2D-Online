@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"server/internal/server"
 	"server/internal/server/interfaces"
+	"server/internal/server/managers"
+	"server/internal/server/objects"
 	"server/internal/server/states"
 	"server/pkg/packets"
 	"sync"
@@ -23,6 +25,8 @@ type WebSocketClient struct {
 	closeOnce sync.Once
 	logger    *log.Logger
 	dbTx      *interfaces.DbTx
+
+	user *objects.User
 }
 
 func NewWebSocketClient(hub *server.Hub, writer http.ResponseWriter, request *http.Request) (interfaces.ClientInterfacer, error) {
@@ -183,4 +187,12 @@ func (c *WebSocketClient) Shutdown(reason string) {
 		c.conn.Close()
 		close(c.sendChan)
 	})
+}
+
+func (c *WebSocketClient) GetRoomManager() *managers.RoomManager {
+	return c.hub.RoomManager
+}
+
+func (c *WebSocketClient) SetUserInfo(user *objects.User) {
+	c.user = user
 }

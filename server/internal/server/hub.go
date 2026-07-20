@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"server/internal/server/db"
 	"server/internal/server/interfaces"
+	"server/internal/server/managers"
 	"server/internal/server/objects"
 	"server/pkg/packets"
 
@@ -17,7 +18,8 @@ import (
 var schemaGenSql string
 
 type Hub struct {
-	Clients *objects.SyncIDMap[interfaces.ClientInterfacer]
+	Clients     *objects.SyncIDMap[interfaces.ClientInterfacer]
+	RoomManager *managers.RoomManager
 
 	BroadcastChan  chan *packets.Packet
 	RegisterChan   chan interfaces.ClientInterfacer
@@ -35,7 +37,8 @@ func (h *Hub) NewDbTx() *interfaces.DbTx {
 func NewHub(dbPool *sql.DB) *Hub {
 
 	return &Hub{
-		Clients: objects.NewSyncIDMap[interfaces.ClientInterfacer](),
+		Clients:     objects.NewSyncIDMap[interfaces.ClientInterfacer](),
+		RoomManager: managers.NewManager(),
 
 		BroadcastChan:  make(chan *packets.Packet),
 		RegisterChan:   make(chan interfaces.ClientInterfacer),

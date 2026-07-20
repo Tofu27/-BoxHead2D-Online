@@ -243,10 +243,12 @@ class ConnectedView(arcade.View):
         if not pkt:
             return
 
-        if pkt.HasField('ok_response'):
+        if pkt.HasField('login_response'):
+            self.g.user_id = pkt.login_response.user_id
+            pyglet.clock.schedule_once(lambda dt: self.g.switch_to(AppState.INHALL), 0.3)
+
+        elif pkt.HasField('ok_response'):
             self._set_status("操作成功！", (50, 180, 50))
-            if self._pending_action in ('login', 'register'):
-                pyglet.clock.schedule_once(lambda dt: self.g.switch_to(AppState.INHALL), 0.3)
             self._pending_action = None
 
         elif pkt.HasField('deny_response'):

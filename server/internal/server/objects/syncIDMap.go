@@ -7,7 +7,7 @@ import (
 type SyncIDMap[T any] struct {
 	objectsMap map[uint64]T
 	nextId     uint64
-	mapMux     sync.Mutex
+	mapMux     sync.RWMutex
 }
 
 func NewSyncIDMap[T any](capacity ...int) *SyncIDMap[T] {
@@ -47,15 +47,23 @@ func (s *SyncIDMap[T]) Remove(id uint64) {
 	delete(s.objectsMap, id)
 }
 
+// ForEach 在锁内直接遍历（适合回调很快的场景）
 func (s *SyncIDMap[T]) ForEach(callback func(uint64, T)) {
-	s.mapMux.Lock()
+	s.mapMux.RLock()
+	defer s.mapMux.RUnlock()
+	for id, obj := range s.objectsMap {
+		callback(id, obj)
+	}
+}
 
+// ForEachSafe 拷贝后再遍历（适合回调耗时或可能修改 map 的场景）
+func (s *SyncIDMap[T]) ForEachSafe(callback func(uint64, T)) {
+	s.mapMux.RLock()
 	localCopy := make(map[uint64]T, len(s.objectsMap))
 	for id, obj := range s.objectsMap {
 		localCopy[id] = obj
 	}
-
-	s.mapMux.Unlock()
+	s.mapMux.RUnlock()
 
 	for id, obj := range localCopy {
 		callback(id, obj)
@@ -63,9 +71,8 @@ func (s *SyncIDMap[T]) ForEach(callback func(uint64, T)) {
 }
 
 func (s *SyncIDMap[T]) Get(id uint64) (T, bool) {
-	s.mapMux.Lock()
-	defer s.mapMux.Unlock()
-
+	s.mapMux.RLock()
+	defer s.mapMux.RUnlock()
 	obj, ok := s.objectsMap[id]
 	return obj, ok
 }

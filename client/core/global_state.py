@@ -27,6 +27,7 @@ class GlobalState:
             self.window: Optional[arcade.Window] = None
             self.ws = None
             self.client_id: int = 0
+            self.user_id: int = -1
             self._initialized = True
 
     def register_state(self, state: AppState, view: arcade.View, view_name: str):

@@ -1,41 +1,39 @@
-
-// protoc -I="proto" --go_out="server" "proto/packets.proto"
-// protoc --python_out=client/core/proto proto/game.proto
 syntax = "proto3";
 
 package packets;
 
 option go_package = "pkg/packets";
 
-message ChatMessage {
-    string msg = 1;
-}
+import "common.proto";
+import "auth.proto";
+import "hall.proto";
 
-// 仅包含 ID 的消息示例
-message IdMessage {
-    // id: 唯一标识（例如玩家 id）
-    uint64 id = 1;
-}
-
-message LoginRequestMessage { string username = 1; string password = 2; }
-message RegisterRequestMessage { string username = 1; string password = 2; }
-
-message OkResponseMessage { }
-message DenyResponseMessage { string reason = 2; }
-
-message PlayerMessage { uint64 id = 1; string name = 2; double x = 3; double y = 4; }
-
-
+// 顶级消息容器 —— 所有消息都通过这个结构传输
 message Packet {
-    uint64 sender_id = 1;
+    uint64 sender_id = 1; // 发送者连接 ID（服务端填充）
 
     oneof msg {
-        ChatMessage chat = 2;
-        IdMessage id = 3;
-        LoginRequestMessage login_request = 4;
-        RegisterRequestMessage register_request = 5;
-        OkResponseMessage ok_response = 6;
-        DenyResponseMessage deny_response = 7;
-        PlayerMessage player = 8;
+        // common
+        IdMessage id = 2;
+        ChatMessage chat = 3;
+        DenyResponse deny_response = 7;
+        OkResponse ok_response = 6;
+
+        // auth
+        LoginRequest login_request = 4;
+        LoginResponse login_response = 5; // 注意编号调整
+        RegisterRequest register_request = 20;
+
+        // hall
+        RoomInfo room_info = 9;
+        RoomListRequest room_list_request = 10;
+        RoomListResponse room_list_response = 11;
+        CreateRoomRequest create_room_request = 12;
+        CreateRoomResponse create_room_response = 13;
+        JoinRoomRequest join_room_request = 14;
+        JoinRoomResponse join_room_response = 15;
+        RoomListUpdate room_list_update = 16;
+        RoomJoined room_joined = 17;
+        User user = 18;
     }
 }

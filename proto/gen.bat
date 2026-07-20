@@ -1,4 +1,4 @@
 @echo off
-protoc -I="." --go_out="../server" "packets.proto"
-protoc -I="." --python_out="../client/core/proto" "packets.proto"
+protoc -I="." --go_out="../server" "*.proto"
+protoc -I="." --python_out="../client/core/proto" "*.proto"
 echo Done

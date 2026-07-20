@@ -77,20 +77,18 @@ func (c *Connected) handleLoginRequest(senderId uint64, message *packets.Packet_
 		return
 	}
 
-	c.client.SendToSelf(packets.NewOkResponse())
+	c.client.SetUserInfo(&objects.User{
+		ID:       uint64(user.ID),
+		Username: user.Username,
+	})
+
+	c.client.SendToSelf(packets.NewLoginResponse(uint64(user.ID), user.Username))
 	c.logger.Printf("用户 %s 登录成功", username)
 
-	player, err := c.queries.GetPlayerByUserID(c.dbCtx, user.ID)
-	if err != nil {
-		c.logger.Printf("获取用户 %s 的玩家信息失败: %v", username, err)
-		c.client.SendToSelf(genericFailMessage)
-		return
-	}
-
 	c.client.SetState(&InHall{
-		player: &objects.Player{
-			Name: username,
-			DbId: player.ID,
+		user: &objects.User{
+			ID:       uint64(user.ID),
+			Username: user.Username,
 		},
 	})
 }
@@ -126,25 +124,13 @@ func (c *Connected) handleRegisterRequest(senderId uint64, message *packets.Pack
 		return
 	}
 
-	var user db.User
-	user, err = c.queries.CreateUser(c.dbCtx, db.CreateUserParams{
+	_, err = c.queries.CreateUser(c.dbCtx, db.CreateUserParams{
 		Username:     username,
 		PasswordHash: string(passwordHash),
 	})
 
 	if err != nil {
 		c.logger.Printf("创建用户 %s 报错: %v", username, err)
-		c.client.SendToSelf(genericFailMessage)
-		return
-	}
-
-	_, err = c.queries.CreatePlayer(c.dbCtx, db.CreatePlayerParams{
-		UserID: user.ID,
-		Name:   message.RegisterRequest.Username,
-	})
-
-	if err != nil {
-		c.logger.Printf("为用户 %s 创建玩家报错: %v", username, err)
 		c.client.SendToSelf(genericFailMessage)
 		return
 	}
