@@ -7,6 +7,7 @@ import (
 	"log"
 	"server/internal/server/db"
 	"server/internal/server/interfaces"
+	"server/internal/server/objects"
 	"server/pkg/packets"
 	"strings"
 
@@ -79,12 +80,19 @@ func (c *Connected) handleLoginRequest(senderId uint64, message *packets.Packet_
 	c.client.SendToSelf(packets.NewOkResponse())
 	c.logger.Printf("用户 %s 登录成功", username)
 
-	_, err = c.queries.GetPlayerByUserID(c.dbCtx, user.ID)
+	player, err := c.queries.GetPlayerByUserID(c.dbCtx, user.ID)
 	if err != nil {
 		c.logger.Printf("获取用户 %s 的玩家信息失败: %v", username, err)
 		c.client.SendToSelf(genericFailMessage)
 		return
 	}
+
+	c.client.SetState(&InHall{
+		player: &objects.Player{
+			Name: username,
+			DbId: player.ID,
+		},
+	})
 }
 
 func (c *Connected) handleRegisterRequest(senderId uint64, message *packets.Packet_RegisterRequest) {
