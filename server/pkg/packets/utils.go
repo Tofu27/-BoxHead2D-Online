@@ -1,25 +1,27 @@
 package packets
 
+// Msg 是 Packet 中 oneof 消息的接口类型
 type Msg = isPacket_Msg
 
-// ===== 基础消息 =====
-func NewChat(msg string) Msg {
-	return &Packet_Chat{
-		Chat: &ChatMessage{
-			Msg: msg,
-		},
-	}
-}
+// ===== Common =====
 
-func NewId(id uint64) Msg {
+// NewIdMessage 创建 ID 消息（服务器分配客户端 ID）
+func NewIdMessage(clientID uint64) Msg {
 	return &Packet_Id{
 		Id: &IdMessage{
-			ClientId: id,
+			ClientId: clientID,
 		},
 	}
 }
 
-// ===== 登录/注册 =====
+// NewOkResponse 创建通用成功响应
+func NewOkResponse() Msg {
+	return &Packet_OkResponse{
+		OkResponse: &OkResponse{},
+	}
+}
+
+// NewDenyResponse 创建通用错误响应
 func NewDenyResponse(reason string) Msg {
 	return &Packet_DenyResponse{
 		DenyResponse: &DenyResponse{
@@ -28,82 +30,40 @@ func NewDenyResponse(reason string) Msg {
 	}
 }
 
-func NewOkResponse() Msg {
-	return &Packet_OkResponse{
-		OkResponse: &OkResponse{},
-	}
-}
-
-func NewLoginRequest(username, password string) Msg {
-	return &Packet_LoginRequest{
-		LoginRequest: &LoginRequest{
-			Username: username,
-			Password: password,
+// NewDisconnect 创建断开连接消息
+func NewDisconnect(reason string) Msg {
+	return &Packet_Disconnect{
+		Disconnect: &DisconnectMessage{
+			Reason: reason,
 		},
 	}
 }
 
-func NewLoginResponse(userId uint64, username string) Msg {
+// NewChat 创建聊天消息
+func NewChat(msg string) Msg {
+	return &Packet_Chat{
+		Chat: &ChatMessage{
+			Msg: msg,
+		},
+	}
+}
+
+// ===== Auth =====
+
+// NewLoginResponse 创建登录响应
+func NewLoginResponse(success bool, reason string, user *User) Msg {
 	return &Packet_LoginResponse{
 		LoginResponse: &LoginResponse{
-			User: &User{
-				Id:       userId,
-				Username: username,
-			},
+			Success: success,
+			Reason:  reason,
+			User:    user,
 		},
 	}
 }
 
-func NewRegisterRequest(username, password string) Msg {
-	return &Packet_RegisterRequest{
-		RegisterRequest: &RegisterRequest{
-			Username: username,
-			Password: password,
-		},
-	}
-}
+// ===== Hall =====
 
-// ===== 大厅/房间 =====
-// 房间信息（通常由服务端构造，客户端也可使用）
-func NewRoomInfo(roomId uint64, name string, playerCount, maxPlayers uint32, user *User) Msg {
-	return &Packet_RoomInfo{
-		RoomInfo: &RoomInfo{
-			RoomId:      roomId,
-			Name:        name,
-			PlayerCount: playerCount,
-			MaxPlayers:  maxPlayers,
-			RoomOwner:   user,
-		},
-	}
-}
-
-// 请求房间列表（客户端发送）
-func NewRoomListRequest() Msg {
-	return &Packet_RoomListRequest{
-		RoomListRequest: &RoomListRequest{},
-	}
-}
-
-// 房间列表响应（服务端发送）
-func NewRoomListResponse(rooms []*RoomInfo) Msg {
-	return &Packet_RoomListResponse{
-		RoomListResponse: &RoomListResponse{
-			Rooms: rooms,
-		},
-	}
-}
-
-// 创建房间请求（客户端发送）
-func NewCreateRoomRequest(name string, maxPlayers uint32) Msg {
-	return &Packet_CreateRoomRequest{
-		CreateRoomRequest: &CreateRoomRequest{
-			Name:       name,
-			MaxPlayers: maxPlayers,
-		},
-	}
-}
-
-// 创建房间响应（服务端发送）
+// NewCreateRoomResponse 创建房间响应
 func NewCreateRoomResponse(success bool, reason string, room *RoomInfo) Msg {
 	return &Packet_CreateRoomResponse{
 		CreateRoomResponse: &CreateRoomResponse{
@@ -114,16 +74,7 @@ func NewCreateRoomResponse(success bool, reason string, room *RoomInfo) Msg {
 	}
 }
 
-// 加入房间请求（客户端发送）
-func NewJoinRoomRequest(roomId uint64) Msg {
-	return &Packet_JoinRoomRequest{
-		JoinRoomRequest: &JoinRoomRequest{
-			RoomId: roomId,
-		},
-	}
-}
-
-// 加入房间响应（服务端发送）
+// NewJoinRoomResponse 加入房间响应
 func NewJoinRoomResponse(success bool, reason string, room *RoomInfo) Msg {
 	return &Packet_JoinRoomResponse{
 		JoinRoomResponse: &JoinRoomResponse{
@@ -134,32 +85,12 @@ func NewJoinRoomResponse(success bool, reason string, room *RoomInfo) Msg {
 	}
 }
 
-// 房间列表更新（服务端广播）
-func NewRoomListUpdate(added []*RoomInfo, removed []uint64) Msg {
-	return &Packet_RoomListUpdate{
-		RoomListUpdate: &RoomListUpdate{
-			Added:   added,
-			Removed: removed,
-		},
-	}
-}
-
-// 玩家进入房间通知（服务端发送给加入者）
+// NewRoomJoined 房间加入/更新通知（服务端推送）
 func NewRoomJoined(room *RoomInfo, users []*User) Msg {
 	return &Packet_RoomJoined{
 		RoomJoined: &RoomJoined{
 			Room:  room,
 			Users: users,
-		},
-	}
-}
-
-// 玩家简要信息（可单独发送，但通常包含在 RoomJoined 中）
-func NewUser(id uint64, username string) Msg {
-	return &Packet_User{
-		User: &User{
-			Id:       id,
-			Username: username,
 		},
 	}
 }

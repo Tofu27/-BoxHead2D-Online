@@ -244,11 +244,17 @@ class ConnectedView(arcade.View):
             return
 
         if pkt.HasField('login_response'):
-            self.g.user_id = pkt.login_response.user_id
-            pyglet.clock.schedule_once(lambda dt: self.g.switch_to(AppState.INHALL), 0.3)
+            login_res = pkt.login_response
+            if login_res.success:
+                self.g.user = login_res.user
+                # ✅ 登录成功，直接切换到 INROOM（不再经过大厅）
+                pyglet.clock.schedule_once(lambda dt: self.g.switch_to(AppState.INROOM), 0.3)
+            else:
+                self._set_status(f"登录失败: {login_res.reason}", COLOR_TEXT_ERROR)
 
         elif pkt.HasField('ok_response'):
-            self._set_status("操作成功！", (50, 180, 50))
+            # 注册成功，仍停留在登录页，提示用户登录
+            self._set_status("注册成功，请登录", (50, 180, 50))
             self._pending_action = None
 
         elif pkt.HasField('deny_response'):

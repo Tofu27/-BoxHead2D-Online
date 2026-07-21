@@ -8,9 +8,8 @@ import "common.proto";
 import "auth.proto";
 import "hall.proto";
 
-// 顶级消息容器 —— 所有消息都通过这个结构传输
 message Packet {
-    uint64 sender_id = 1; // 发送者连接 ID（服务端填充）
+    uint64 sender_id = 1;
 
     oneof msg {
         // common
@@ -18,21 +17,21 @@ message Packet {
         ChatMessage chat = 3;
         DenyResponse deny_response = 7;
         OkResponse ok_response = 6;
+        DisconnectMessage disconnect = 19;
 
         // auth
         LoginRequest login_request = 4;
-        LoginResponse login_response = 5; // 注意编号调整
+        LoginResponse login_response = 5;
         RegisterRequest register_request = 20;
 
         // hall
         RoomInfo room_info = 9;
-        RoomListRequest room_list_request = 10;
-        RoomListResponse room_list_response = 11;
         CreateRoomRequest create_room_request = 12;
         CreateRoomResponse create_room_response = 13;
         JoinRoomRequest join_room_request = 14;
         JoinRoomResponse join_room_response = 15;
-        RoomListUpdate room_list_update = 16;
+        LeaveRoomRequest leave_room_request = 21;
+        StartGameRequest start_game_request = 22;
         RoomJoined room_joined = 17;
         User user = 18;
     }

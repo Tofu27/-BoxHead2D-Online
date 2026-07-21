@@ -98,88 +98,7 @@ func (x *RoomInfo) GetRoomOwner() *User {
 	return nil
 }
 
-// 获取房间列表
-type RoomListRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RoomListRequest) Reset() {
-	*x = RoomListRequest{}
-	mi := &file_hall_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RoomListRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RoomListRequest) ProtoMessage() {}
-
-func (x *RoomListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hall_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RoomListRequest.ProtoReflect.Descriptor instead.
-func (*RoomListRequest) Descriptor() ([]byte, []int) {
-	return file_hall_proto_rawDescGZIP(), []int{1}
-}
-
-type RoomListResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Rooms         []*RoomInfo            `protobuf:"bytes,1,rep,name=rooms,proto3" json:"rooms,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RoomListResponse) Reset() {
-	*x = RoomListResponse{}
-	mi := &file_hall_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RoomListResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RoomListResponse) ProtoMessage() {}
-
-func (x *RoomListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hall_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RoomListResponse.ProtoReflect.Descriptor instead.
-func (*RoomListResponse) Descriptor() ([]byte, []int) {
-	return file_hall_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *RoomListResponse) GetRooms() []*RoomInfo {
-	if x != nil {
-		return x.Rooms
-	}
-	return nil
-}
-
-// 创建房间
+// 创建房间（客户端可选，但本流程由服务端自动创建，可保留备用）
 type CreateRoomRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -190,7 +109,7 @@ type CreateRoomRequest struct {
 
 func (x *CreateRoomRequest) Reset() {
 	*x = CreateRoomRequest{}
-	mi := &file_hall_proto_msgTypes[3]
+	mi := &file_hall_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -202,7 +121,7 @@ func (x *CreateRoomRequest) String() string {
 func (*CreateRoomRequest) ProtoMessage() {}
 
 func (x *CreateRoomRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hall_proto_msgTypes[3]
+	mi := &file_hall_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -215,7 +134,7 @@ func (x *CreateRoomRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRoomRequest.ProtoReflect.Descriptor instead.
 func (*CreateRoomRequest) Descriptor() ([]byte, []int) {
-	return file_hall_proto_rawDescGZIP(), []int{3}
+	return file_hall_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *CreateRoomRequest) GetName() string {
@@ -243,7 +162,7 @@ type CreateRoomResponse struct {
 
 func (x *CreateRoomResponse) Reset() {
 	*x = CreateRoomResponse{}
-	mi := &file_hall_proto_msgTypes[4]
+	mi := &file_hall_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -255,7 +174,7 @@ func (x *CreateRoomResponse) String() string {
 func (*CreateRoomResponse) ProtoMessage() {}
 
 func (x *CreateRoomResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hall_proto_msgTypes[4]
+	mi := &file_hall_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -268,7 +187,7 @@ func (x *CreateRoomResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRoomResponse.ProtoReflect.Descriptor instead.
 func (*CreateRoomResponse) Descriptor() ([]byte, []int) {
-	return file_hall_proto_rawDescGZIP(), []int{4}
+	return file_hall_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *CreateRoomResponse) GetSuccess() bool {
@@ -292,7 +211,7 @@ func (x *CreateRoomResponse) GetRoom() *RoomInfo {
 	return nil
 }
 
-// 加入房间
+// 加入房间（客户端可选）
 type JoinRoomRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RoomId        uint64                 `protobuf:"varint,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
@@ -302,7 +221,7 @@ type JoinRoomRequest struct {
 
 func (x *JoinRoomRequest) Reset() {
 	*x = JoinRoomRequest{}
-	mi := &file_hall_proto_msgTypes[5]
+	mi := &file_hall_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -314,7 +233,7 @@ func (x *JoinRoomRequest) String() string {
 func (*JoinRoomRequest) ProtoMessage() {}
 
 func (x *JoinRoomRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hall_proto_msgTypes[5]
+	mi := &file_hall_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -327,7 +246,7 @@ func (x *JoinRoomRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JoinRoomRequest.ProtoReflect.Descriptor instead.
 func (*JoinRoomRequest) Descriptor() ([]byte, []int) {
-	return file_hall_proto_rawDescGZIP(), []int{5}
+	return file_hall_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *JoinRoomRequest) GetRoomId() uint64 {
@@ -348,7 +267,7 @@ type JoinRoomResponse struct {
 
 func (x *JoinRoomResponse) Reset() {
 	*x = JoinRoomResponse{}
-	mi := &file_hall_proto_msgTypes[6]
+	mi := &file_hall_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -360,7 +279,7 @@ func (x *JoinRoomResponse) String() string {
 func (*JoinRoomResponse) ProtoMessage() {}
 
 func (x *JoinRoomResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hall_proto_msgTypes[6]
+	mi := &file_hall_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -373,7 +292,7 @@ func (x *JoinRoomResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JoinRoomResponse.ProtoReflect.Descriptor instead.
 func (*JoinRoomResponse) Descriptor() ([]byte, []int) {
-	return file_hall_proto_rawDescGZIP(), []int{6}
+	return file_hall_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *JoinRoomResponse) GetSuccess() bool {
@@ -397,30 +316,28 @@ func (x *JoinRoomResponse) GetRoom() *RoomInfo {
 	return nil
 }
 
-// 房间列表增量更新（广播给大厅内所有玩家）
-type RoomListUpdate struct {
+// 离开房间
+type LeaveRoomRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Added         []*RoomInfo            `protobuf:"bytes,1,rep,name=added,proto3" json:"added,omitempty"`
-	Removed       []uint64               `protobuf:"varint,2,rep,packed,name=removed,proto3" json:"removed,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RoomListUpdate) Reset() {
-	*x = RoomListUpdate{}
-	mi := &file_hall_proto_msgTypes[7]
+func (x *LeaveRoomRequest) Reset() {
+	*x = LeaveRoomRequest{}
+	mi := &file_hall_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RoomListUpdate) String() string {
+func (x *LeaveRoomRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RoomListUpdate) ProtoMessage() {}
+func (*LeaveRoomRequest) ProtoMessage() {}
 
-func (x *RoomListUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_hall_proto_msgTypes[7]
+func (x *LeaveRoomRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hall_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -431,37 +348,60 @@ func (x *RoomListUpdate) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RoomListUpdate.ProtoReflect.Descriptor instead.
-func (*RoomListUpdate) Descriptor() ([]byte, []int) {
-	return file_hall_proto_rawDescGZIP(), []int{7}
+// Deprecated: Use LeaveRoomRequest.ProtoReflect.Descriptor instead.
+func (*LeaveRoomRequest) Descriptor() ([]byte, []int) {
+	return file_hall_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *RoomListUpdate) GetAdded() []*RoomInfo {
+// 开始游戏（房主发起）
+type StartGameRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StartGameRequest) Reset() {
+	*x = StartGameRequest{}
+	mi := &file_hall_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartGameRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartGameRequest) ProtoMessage() {}
+
+func (x *StartGameRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hall_proto_msgTypes[6]
 	if x != nil {
-		return x.Added
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
 	}
-	return nil
+	return mi.MessageOf(x)
 }
 
-func (x *RoomListUpdate) GetRemoved() []uint64 {
-	if x != nil {
-		return x.Removed
-	}
-	return nil
+// Deprecated: Use StartGameRequest.ProtoReflect.Descriptor instead.
+func (*StartGameRequest) Descriptor() ([]byte, []int) {
+	return file_hall_proto_rawDescGZIP(), []int{6}
 }
 
-// 玩家成功进入房间后，服务端下发的通知
+// 房间加入/更新通知（包含完整房间信息和玩家列表）
 type RoomJoined struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Room          *RoomInfo              `protobuf:"bytes,1,opt,name=room,proto3" json:"room,omitempty"`
-	Users         []*User                `protobuf:"bytes,2,rep,name=users,proto3" json:"users,omitempty"` // 房间内所有玩家
+	Users         []*User                `protobuf:"bytes,2,rep,name=users,proto3" json:"users,omitempty"` // 当前房间内所有玩家
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RoomJoined) Reset() {
 	*x = RoomJoined{}
-	mi := &file_hall_proto_msgTypes[8]
+	mi := &file_hall_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -473,7 +413,7 @@ func (x *RoomJoined) String() string {
 func (*RoomJoined) ProtoMessage() {}
 
 func (x *RoomJoined) ProtoReflect() protoreflect.Message {
-	mi := &file_hall_proto_msgTypes[8]
+	mi := &file_hall_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -486,7 +426,7 @@ func (x *RoomJoined) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RoomJoined.ProtoReflect.Descriptor instead.
 func (*RoomJoined) Descriptor() ([]byte, []int) {
-	return file_hall_proto_rawDescGZIP(), []int{8}
+	return file_hall_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *RoomJoined) GetRoom() *RoomInfo {
@@ -516,10 +456,7 @@ const file_hall_proto_rawDesc = "" +
 	"\vmax_players\x18\x04 \x01(\rR\n" +
 	"maxPlayers\x12,\n" +
 	"\n" +
-	"room_owner\x18\x05 \x01(\v2\r.packets.UserR\troomOwner\"\x11\n" +
-	"\x0fRoomListRequest\";\n" +
-	"\x10RoomListResponse\x12'\n" +
-	"\x05rooms\x18\x01 \x03(\v2\x11.packets.RoomInfoR\x05rooms\"H\n" +
+	"room_owner\x18\x05 \x01(\v2\r.packets.UserR\troomOwner\"H\n" +
 	"\x11CreateRoomRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1f\n" +
 	"\vmax_players\x18\x02 \x01(\rR\n" +
@@ -533,10 +470,9 @@ const file_hall_proto_rawDesc = "" +
 	"\x10JoinRoomResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\x12%\n" +
-	"\x04room\x18\x03 \x01(\v2\x11.packets.RoomInfoR\x04room\"S\n" +
-	"\x0eRoomListUpdate\x12'\n" +
-	"\x05added\x18\x01 \x03(\v2\x11.packets.RoomInfoR\x05added\x12\x18\n" +
-	"\aremoved\x18\x02 \x03(\x04R\aremoved\"X\n" +
+	"\x04room\x18\x03 \x01(\v2\x11.packets.RoomInfoR\x04room\"\x12\n" +
+	"\x10LeaveRoomRequest\"\x12\n" +
+	"\x10StartGameRequest\"X\n" +
 	"\n" +
 	"RoomJoined\x12%\n" +
 	"\x04room\x18\x01 \x01(\v2\x11.packets.RoomInfoR\x04room\x12#\n" +
@@ -554,32 +490,29 @@ func file_hall_proto_rawDescGZIP() []byte {
 	return file_hall_proto_rawDescData
 }
 
-var file_hall_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_hall_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_hall_proto_goTypes = []any{
 	(*RoomInfo)(nil),           // 0: packets.RoomInfo
-	(*RoomListRequest)(nil),    // 1: packets.RoomListRequest
-	(*RoomListResponse)(nil),   // 2: packets.RoomListResponse
-	(*CreateRoomRequest)(nil),  // 3: packets.CreateRoomRequest
-	(*CreateRoomResponse)(nil), // 4: packets.CreateRoomResponse
-	(*JoinRoomRequest)(nil),    // 5: packets.JoinRoomRequest
-	(*JoinRoomResponse)(nil),   // 6: packets.JoinRoomResponse
-	(*RoomListUpdate)(nil),     // 7: packets.RoomListUpdate
-	(*RoomJoined)(nil),         // 8: packets.RoomJoined
-	(*User)(nil),               // 9: packets.User
+	(*CreateRoomRequest)(nil),  // 1: packets.CreateRoomRequest
+	(*CreateRoomResponse)(nil), // 2: packets.CreateRoomResponse
+	(*JoinRoomRequest)(nil),    // 3: packets.JoinRoomRequest
+	(*JoinRoomResponse)(nil),   // 4: packets.JoinRoomResponse
+	(*LeaveRoomRequest)(nil),   // 5: packets.LeaveRoomRequest
+	(*StartGameRequest)(nil),   // 6: packets.StartGameRequest
+	(*RoomJoined)(nil),         // 7: packets.RoomJoined
+	(*User)(nil),               // 8: packets.User
 }
 var file_hall_proto_depIdxs = []int32{
-	9, // 0: packets.RoomInfo.room_owner:type_name -> packets.User
-	0, // 1: packets.RoomListResponse.rooms:type_name -> packets.RoomInfo
-	0, // 2: packets.CreateRoomResponse.room:type_name -> packets.RoomInfo
-	0, // 3: packets.JoinRoomResponse.room:type_name -> packets.RoomInfo
-	0, // 4: packets.RoomListUpdate.added:type_name -> packets.RoomInfo
-	0, // 5: packets.RoomJoined.room:type_name -> packets.RoomInfo
-	9, // 6: packets.RoomJoined.users:type_name -> packets.User
-	7, // [7:7] is the sub-list for method output_type
-	7, // [7:7] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	8, // 0: packets.RoomInfo.room_owner:type_name -> packets.User
+	0, // 1: packets.CreateRoomResponse.room:type_name -> packets.RoomInfo
+	0, // 2: packets.JoinRoomResponse.room:type_name -> packets.RoomInfo
+	0, // 3: packets.RoomJoined.room:type_name -> packets.RoomInfo
+	8, // 4: packets.RoomJoined.users:type_name -> packets.User
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_hall_proto_init() }
@@ -594,7 +527,7 @@ func file_hall_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hall_proto_rawDesc), len(file_hall_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

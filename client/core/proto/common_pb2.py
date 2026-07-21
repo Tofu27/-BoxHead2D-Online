@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0c\x63ommon.proto\x12\x07packets\"$\n\x04User\x12\n\n\x02id\x18\x01 \x01(\x04\x12\x10\n\x08username\x18\x02 \x01(\t\"\x1e\n\tIdMessage\x12\x11\n\tclient_id\x18\x01 \x01(\x04\"\x1a\n\x0b\x43hatMessage\x12\x0b\n\x03msg\x18\x01 \x01(\t\"\x1e\n\x0c\x44\x65nyResponse\x12\x0e\n\x06reason\x18\x01 \x01(\t\"\x0c\n\nOkResponseB\rZ\x0bpkg/packetsb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0c\x63ommon.proto\x12\x07packets\"$\n\x04User\x12\n\n\x02id\x18\x01 \x01(\x04\x12\x10\n\x08username\x18\x02 \x01(\t\"\x1e\n\tIdMessage\x12\x11\n\tclient_id\x18\x01 \x01(\x04\"\x1a\n\x0b\x43hatMessage\x12\x0b\n\x03msg\x18\x01 \x01(\t\"\x1e\n\x0c\x44\x65nyResponse\x12\x0e\n\x06reason\x18\x01 \x01(\t\"\x0c\n\nOkResponse\"#\n\x11\x44isconnectMessage\x12\x0e\n\x06reason\x18\x01 \x01(\tB\rZ\x0bpkg/packetsb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -42,4 +42,6 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_DENYRESPONSE']._serialized_end=153
   _globals['_OKRESPONSE']._serialized_start=155
   _globals['_OKRESPONSE']._serialized_end=167
+  _globals['_DISCONNECTMESSAGE']._serialized_start=169
+  _globals['_DISCONNECTMESSAGE']._serialized_end=204
 # @@protoc_insertion_point(module_scope)

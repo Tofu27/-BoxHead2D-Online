@@ -1,12 +1,23 @@
 # app.py
-import arcade
 import os
+import sys
+
+
+# 将 proto 目录加入 Python 搜索路径
+proto_dir = os.path.join(os.path.dirname(__file__), "core", "proto")
+if proto_dir not in sys.path:
+    sys.path.insert(0, proto_dir)
+
+
+import arcade
 import pickle
 from core.global_state import GlobalState, AppState
 from core.ws_client import WSClient
 from views.entered_view import EnteredView
 from views.connected_view import ConnectedView
-from views.inhall_view import InHallView
+from views.inroom_view import InRoomView
+
+
 
 class BoxHead2d(arcade.Window):
     def __init__(self):
@@ -24,11 +35,11 @@ class BoxHead2d(arcade.Window):
         # 3. 注册所有状态视图
         entered_view = EnteredView()
         connected_view = ConnectedView()
-        inhall_view = InHallView()
+        inroom_view = InRoomView()
 
         self.g.register_state(AppState.ENTERED, entered_view, "ENTERED")
         self.g.register_state(AppState.CONNECTED, connected_view, "CONNECTED")
-        self.g.register_state(AppState.INHALL, inhall_view, "INHALL")
+        self.g.register_state(AppState.INROOM, inroom_view, "INROOM")
 
         # 4. 切换到初始状态：ENTERED（自动连接服务器）
         self.g.switch_to(AppState.ENTERED)

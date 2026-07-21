@@ -12,18 +12,12 @@ message RoomInfo {
     string name = 2;
     uint32 player_count = 3;
     uint32 max_players = 4;
-    User   room_owner = 5; // 房主信息
+    User room_owner = 5; // 房主信息
 }
 
-// ===== 请求/响应 =====
+// ---------- 客户端请求 ----------
 
-// 获取房间列表
-message RoomListRequest {}
-message RoomListResponse {
-    repeated RoomInfo rooms = 1;
-}
-
-// 创建房间
+// 创建房间（客户端可选，但本流程由服务端自动创建，可保留备用）
 message CreateRoomRequest {
     string name = 1;
     uint32 max_players = 2;
@@ -34,7 +28,7 @@ message CreateRoomResponse {
     RoomInfo room = 3;
 }
 
-// 加入房间
+// 加入房间（客户端可选）
 message JoinRoomRequest {
     uint64 room_id = 1;
 }
@@ -44,16 +38,16 @@ message JoinRoomResponse {
     RoomInfo room = 3;
 }
 
-// ===== 服务端主动推送 =====
+// 离开房间
+message LeaveRoomRequest {}
 
-// 房间列表增量更新（广播给大厅内所有玩家）
-message RoomListUpdate {
-    repeated RoomInfo added = 1;
-    repeated uint64 removed = 2;
-}
+// 开始游戏（房主发起）
+message StartGameRequest {}
 
-// 玩家成功进入房间后，服务端下发的通知
+// ---------- 服务端推送 ----------
+
+// 房间加入/更新通知（包含完整房间信息和玩家列表）
 message RoomJoined {
     RoomInfo room = 1;
-    repeated User users = 2; // 房间内所有玩家
+    repeated User users = 2; // 当前房间内所有玩家
 }

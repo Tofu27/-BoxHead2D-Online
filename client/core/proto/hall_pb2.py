@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 import common_pb2 as common__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nhall.proto\x12\x07packets\x1a\x0c\x63ommon.proto\"w\n\x08RoomInfo\x12\x0f\n\x07room_id\x18\x01 \x01(\x04\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x14\n\x0cplayer_count\x18\x03 \x01(\r\x12\x13\n\x0bmax_players\x18\x04 \x01(\r\x12!\n\nroom_owner\x18\x05 \x01(\x0b\x32\r.packets.User\"\x11\n\x0fRoomListRequest\"4\n\x10RoomListResponse\x12 \n\x05rooms\x18\x01 \x03(\x0b\x32\x11.packets.RoomInfo\"6\n\x11\x43reateRoomRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x13\n\x0bmax_players\x18\x02 \x01(\r\"V\n\x12\x43reateRoomResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0e\n\x06reason\x18\x02 \x01(\t\x12\x1f\n\x04room\x18\x03 \x01(\x0b\x32\x11.packets.RoomInfo\"\"\n\x0fJoinRoomRequest\x12\x0f\n\x07room_id\x18\x01 \x01(\x04\"T\n\x10JoinRoomResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0e\n\x06reason\x18\x02 \x01(\t\x12\x1f\n\x04room\x18\x03 \x01(\x0b\x32\x11.packets.RoomInfo\"C\n\x0eRoomListUpdate\x12 \n\x05\x61\x64\x64\x65\x64\x18\x01 \x03(\x0b\x32\x11.packets.RoomInfo\x12\x0f\n\x07removed\x18\x02 \x03(\x04\"K\n\nRoomJoined\x12\x1f\n\x04room\x18\x01 \x01(\x0b\x32\x11.packets.RoomInfo\x12\x1c\n\x05users\x18\x02 \x03(\x0b\x32\r.packets.UserB\rZ\x0bpkg/packetsb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\nhall.proto\x12\x07packets\x1a\x0c\x63ommon.proto\"w\n\x08RoomInfo\x12\x0f\n\x07room_id\x18\x01 \x01(\x04\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x14\n\x0cplayer_count\x18\x03 \x01(\r\x12\x13\n\x0bmax_players\x18\x04 \x01(\r\x12!\n\nroom_owner\x18\x05 \x01(\x0b\x32\r.packets.User\"6\n\x11\x43reateRoomRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x13\n\x0bmax_players\x18\x02 \x01(\r\"V\n\x12\x43reateRoomResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0e\n\x06reason\x18\x02 \x01(\t\x12\x1f\n\x04room\x18\x03 \x01(\x0b\x32\x11.packets.RoomInfo\"\"\n\x0fJoinRoomRequest\x12\x0f\n\x07room_id\x18\x01 \x01(\x04\"T\n\x10JoinRoomResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x0e\n\x06reason\x18\x02 \x01(\t\x12\x1f\n\x04room\x18\x03 \x01(\x0b\x32\x11.packets.RoomInfo\"\x12\n\x10LeaveRoomRequest\"\x12\n\x10StartGameRequest\"K\n\nRoomJoined\x12\x1f\n\x04room\x18\x01 \x01(\x0b\x32\x11.packets.RoomInfo\x12\x1c\n\x05users\x18\x02 \x03(\x0b\x32\r.packets.UserB\rZ\x0bpkg/packetsb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,20 +35,18 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._serialized_options = b'Z\013pkg/packets'
   _globals['_ROOMINFO']._serialized_start=37
   _globals['_ROOMINFO']._serialized_end=156
-  _globals['_ROOMLISTREQUEST']._serialized_start=158
-  _globals['_ROOMLISTREQUEST']._serialized_end=175
-  _globals['_ROOMLISTRESPONSE']._serialized_start=177
-  _globals['_ROOMLISTRESPONSE']._serialized_end=229
-  _globals['_CREATEROOMREQUEST']._serialized_start=231
-  _globals['_CREATEROOMREQUEST']._serialized_end=285
-  _globals['_CREATEROOMRESPONSE']._serialized_start=287
-  _globals['_CREATEROOMRESPONSE']._serialized_end=373
-  _globals['_JOINROOMREQUEST']._serialized_start=375
-  _globals['_JOINROOMREQUEST']._serialized_end=409
-  _globals['_JOINROOMRESPONSE']._serialized_start=411
-  _globals['_JOINROOMRESPONSE']._serialized_end=495
-  _globals['_ROOMLISTUPDATE']._serialized_start=497
-  _globals['_ROOMLISTUPDATE']._serialized_end=564
-  _globals['_ROOMJOINED']._serialized_start=566
-  _globals['_ROOMJOINED']._serialized_end=641
+  _globals['_CREATEROOMREQUEST']._serialized_start=158
+  _globals['_CREATEROOMREQUEST']._serialized_end=212
+  _globals['_CREATEROOMRESPONSE']._serialized_start=214
+  _globals['_CREATEROOMRESPONSE']._serialized_end=300
+  _globals['_JOINROOMREQUEST']._serialized_start=302
+  _globals['_JOINROOMREQUEST']._serialized_end=336
+  _globals['_JOINROOMRESPONSE']._serialized_start=338
+  _globals['_JOINROOMRESPONSE']._serialized_end=422
+  _globals['_LEAVEROOMREQUEST']._serialized_start=424
+  _globals['_LEAVEROOMREQUEST']._serialized_end=442
+  _globals['_STARTGAMEREQUEST']._serialized_start=444
+  _globals['_STARTGAMEREQUEST']._serialized_end=462
+  _globals['_ROOMJOINED']._serialized_start=464
+  _globals['_ROOMJOINED']._serialized_end=539
 # @@protoc_insertion_point(module_scope)

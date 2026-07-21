@@ -21,7 +21,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// 用户信息
 type User struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            uint64                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -74,10 +73,9 @@ func (x *User) GetUsername() string {
 	return ""
 }
 
-// 仅 ID 消息（服务器分配连接 ID）
 type IdMessage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ClientId      uint64                 `protobuf:"varint,1,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"` // 客户端连接 ID（会话级）
+	ClientId      uint64                 `protobuf:"varint,1,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -119,7 +117,6 @@ func (x *IdMessage) GetClientId() uint64 {
 	return 0
 }
 
-// 聊天消息
 type ChatMessage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Msg           string                 `protobuf:"bytes,1,opt,name=msg,proto3" json:"msg,omitempty"`
@@ -164,7 +161,6 @@ func (x *ChatMessage) GetMsg() string {
 	return ""
 }
 
-// 拒绝响应（通用错误）
 type DenyResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Reason        string                 `protobuf:"bytes,1,opt,name=reason,proto3" json:"reason,omitempty"`
@@ -209,7 +205,6 @@ func (x *DenyResponse) GetReason() string {
 	return ""
 }
 
-// 成功响应（通用成功）
 type OkResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -246,6 +241,50 @@ func (*OkResponse) Descriptor() ([]byte, []int) {
 	return file_common_proto_rawDescGZIP(), []int{4}
 }
 
+type DisconnectMessage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Reason        string                 `protobuf:"bytes,1,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DisconnectMessage) Reset() {
+	*x = DisconnectMessage{}
+	mi := &file_common_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DisconnectMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DisconnectMessage) ProtoMessage() {}
+
+func (x *DisconnectMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_common_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DisconnectMessage.ProtoReflect.Descriptor instead.
+func (*DisconnectMessage) Descriptor() ([]byte, []int) {
+	return file_common_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *DisconnectMessage) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
 var File_common_proto protoreflect.FileDescriptor
 
 const file_common_proto_rawDesc = "" +
@@ -261,7 +300,9 @@ const file_common_proto_rawDesc = "" +
 	"\fDenyResponse\x12\x16\n" +
 	"\x06reason\x18\x01 \x01(\tR\x06reason\"\f\n" +
 	"\n" +
-	"OkResponseB\rZ\vpkg/packetsb\x06proto3"
+	"OkResponse\"+\n" +
+	"\x11DisconnectMessage\x12\x16\n" +
+	"\x06reason\x18\x01 \x01(\tR\x06reasonB\rZ\vpkg/packetsb\x06proto3"
 
 var (
 	file_common_proto_rawDescOnce sync.Once
@@ -275,13 +316,14 @@ func file_common_proto_rawDescGZIP() []byte {
 	return file_common_proto_rawDescData
 }
 
-var file_common_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_common_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_common_proto_goTypes = []any{
-	(*User)(nil),         // 0: packets.User
-	(*IdMessage)(nil),    // 1: packets.IdMessage
-	(*ChatMessage)(nil),  // 2: packets.ChatMessage
-	(*DenyResponse)(nil), // 3: packets.DenyResponse
-	(*OkResponse)(nil),   // 4: packets.OkResponse
+	(*User)(nil),              // 0: packets.User
+	(*IdMessage)(nil),         // 1: packets.IdMessage
+	(*ChatMessage)(nil),       // 2: packets.ChatMessage
+	(*DenyResponse)(nil),      // 3: packets.DenyResponse
+	(*OkResponse)(nil),        // 4: packets.OkResponse
+	(*DisconnectMessage)(nil), // 5: packets.DisconnectMessage
 }
 var file_common_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -302,7 +344,7 @@ func file_common_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_common_proto_rawDesc), len(file_common_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -38,7 +38,7 @@ func NewHub(dbPool *sql.DB) *Hub {
 
 	return &Hub{
 		Clients:     objects.NewSyncIDMap[interfaces.ClientInterfacer](),
-		RoomManager: managers.NewManager(),
+		RoomManager: managers.NewRoomManager(),
 
 		BroadcastChan:  make(chan *packets.Packet),
 		RegisterChan:   make(chan interfaces.ClientInterfacer),

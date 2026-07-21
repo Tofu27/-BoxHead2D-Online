@@ -4,26 +4,25 @@ package packets;
 
 option go_package = "pkg/packets";
 
-// 用户信息
 message User {
     uint64 id = 1;
-	string username = 2;
+    string username = 2;
 }
 
-// 仅 ID 消息（服务器分配连接 ID）
 message IdMessage {
-    uint64 client_id = 1; // 客户端连接 ID（会话级）
+    uint64 client_id = 1;
 }
 
-// 聊天消息
 message ChatMessage {
     string msg = 1;
 }
 
-// 拒绝响应（通用错误）
 message DenyResponse {
     string reason = 1;
 }
 
-// 成功响应（通用成功）
 message OkResponse {}
+
+message DisconnectMessage {
+    string reason = 1;
+}

@@ -34,6 +34,6 @@ class EnteredView(arcade.View):
             pkt = ws.get_packet()
             if pkt and pkt.HasField('id'):
                 # 收到 ID，保存并切换到 CONNECTED
-                self.g.client_id = pkt.id.id
+                self.g.client_id = pkt.id.client_id
                 print(f"获得客户端 ID: {self.g.client_id}")
                 self.g.switch_to(AppState.CONNECTED)

@@ -6,23 +6,18 @@ option go_package = "pkg/packets";
 
 import "common.proto";
 
-// 登录请求（客户端发送）
 message LoginRequest {
     string username = 1;
     string password = 2;
 }
 
-// 登录响应（服务端返回）
 message LoginResponse {
     bool success = 1;
-    string reason = 2; // 失败时填写
-    User user = 3; // 登录成功时返回玩家信息
+    string reason = 2;
+    User user = 3;
 }
 
-// 注册请求
 message RegisterRequest {
     string username = 1;
     string password = 2;
 }
-
-// 注册响应（可以复用 OkResponse / DenyResponse）

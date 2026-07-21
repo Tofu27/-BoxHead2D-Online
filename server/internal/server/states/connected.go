@@ -36,7 +36,7 @@ func (c *Connected) SetClient(client interfaces.ClientInterfacer) {
 }
 
 func (c *Connected) OnEnter() {
-	c.client.SendToSelf(packets.NewId(c.client.Id()))
+	c.client.SendToSelf(packets.NewIdMessage(c.client.Id()))
 }
 
 func (c *Connected) HandleMessage(senderId uint64, message packets.Msg) {
@@ -56,10 +56,6 @@ func (c *Connected) OnExit() {
 }
 
 func (c *Connected) handleLoginRequest(senderId uint64, message *packets.Packet_LoginRequest) {
-	if senderId != c.client.Id() {
-		return
-	}
-
 	username := message.LoginRequest.Username
 	genericFailMessage := packets.NewDenyResponse("用户名或密码不正确")
 
@@ -77,15 +73,20 @@ func (c *Connected) handleLoginRequest(senderId uint64, message *packets.Packet_
 		return
 	}
 
-	c.client.SetUserInfo(&objects.User{
+	userObj := &objects.User{
 		ID:       uint64(user.ID),
 		Username: user.Username,
-	})
+	}
 
-	c.client.SendToSelf(packets.NewLoginResponse(uint64(user.ID), user.Username))
+	c.client.SetUserInfo(userObj)
+
+	c.client.SendToSelf(packets.NewLoginResponse(true, "登录成功", &packets.User{
+		Id:       userObj.ID,
+		Username: userObj.Username,
+	}))
 	c.logger.Printf("用户 %s 登录成功", username)
 
-	c.client.SetState(&InHall{
+	c.client.SetState(&InRoom{
 		user: &objects.User{
 			ID:       uint64(user.ID),
 			Username: user.Username,

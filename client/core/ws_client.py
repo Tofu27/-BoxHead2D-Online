@@ -32,6 +32,7 @@ class WSClient:
         # 反序列化 Protobuf
         pkt = packets_pb2.Packet()
         pkt.ParseFromString(message)
+        print("收到消息:", pkt)          # 直接打印
         self.recv_queue.put(pkt)
 
     def _on_error(self, ws, error):

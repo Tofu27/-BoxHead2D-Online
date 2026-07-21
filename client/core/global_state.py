@@ -7,6 +7,7 @@ class AppState(Enum):
     ENTERED = auto()      # 进入应用，连接服务器
     CONNECTED = auto()    # 已连接，显示登录界面
     INHALL = auto()       # 已登录，进入大厅
+    INROOM = auto()       # 房间内等待状态
 
 
 class GlobalState:
@@ -27,8 +28,10 @@ class GlobalState:
             self.window: Optional[arcade.Window] = None
             self.ws = None
             self.client_id: int = 0
-            self.user_id: int = -1
             self._initialized = True
+
+            self.user = { 'id': 0, 'username': '' }
+            self.room_players = []
 
     def register_state(self, state: AppState, view: arcade.View, view_name: str):
         """注册状态对应的视图"""

@@ -5,19 +5,16 @@ import (
 )
 
 type Room struct {
-	ID           uint64
-	Name         string
-	MaxPlayers   uint32
-	RoomOwner    *User            // 房主
-	Players      map[uint64]*User // key = 玩家
-	nextPlayerId uint64
-	mu           sync.RWMutex // 保护 Players 和内部状态
+	ID         uint64
+	MaxPlayers uint32
+	RoomOwner  *User            // 房主
+	Players    map[uint64]*User // key = 玩家
+	mu         sync.RWMutex     // 保护 Players 和内部状态
 }
 
-func NewRoom(id uint64, name string, maxPlayers uint32, owner *User) *Room {
+func NewRoom(id uint64, maxPlayers uint32, owner *User) *Room {
 	r := &Room{
 		ID:         id,
-		Name:       name,
 		MaxPlayers: maxPlayers,
 		RoomOwner:  owner,
 		Players:    make(map[uint64]*User),

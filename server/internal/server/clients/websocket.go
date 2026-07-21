@@ -181,18 +181,19 @@ func (c *WebSocketClient) RunWriteLoop() {
 func (c *WebSocketClient) Shutdown(reason string) {
 	c.logger.Printf("关闭客户端连接，原因：%s", reason)
 
+	c.BroadcastToOthers(packets.NewDisconnect(reason))
 	c.hub.UnRegisterChan <- c
-
+	c.SetState(nil)
 	c.closeOnce.Do(func() {
 		c.conn.Close()
 		close(c.sendChan)
 	})
 }
 
-func (c *WebSocketClient) GetRoomManager() *managers.RoomManager {
-	return c.hub.RoomManager
-}
-
 func (c *WebSocketClient) SetUserInfo(user *objects.User) {
 	c.user = user
+}
+
+func (c *WebSocketClient) GetRoomManager() *managers.RoomManager {
+	return c.hub.RoomManager
 }
