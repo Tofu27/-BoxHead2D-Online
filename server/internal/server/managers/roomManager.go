@@ -23,7 +23,7 @@ func (m *RoomManager) CreateRoom(maxPlayers uint32, owner *objects.User) (*objec
 	defer m.mu.Unlock()
 
 	if m.room != nil {
-		return nil, errors.New("房间已存在")
+		return m.room, errors.New("房间已存在")
 	}
 
 	// 使用 objects.NewRoom 创建房间（房主会自动加入 Players）

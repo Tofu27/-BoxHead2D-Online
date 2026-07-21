@@ -28,7 +28,12 @@ func (c *InRoom) OnEnter() {
 	c.logger.Printf("玩家 %s 进入房间", c.user.Username)
 
 	roomManager := c.client.GetRoomManager()
-	roomManager.CreateRoom(4, c.user)
+	room, err := roomManager.CreateRoom(4, c.user)
+
+	if err != nil {
+		c.logger.Printf("房间已经存在")
+		return
+	}
 
 }
 
