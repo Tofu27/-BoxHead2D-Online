@@ -247,8 +247,7 @@ class ConnectedView(arcade.View):
             login_res = pkt.login_response
             if login_res.success:
                 self.g.user = login_res.user
-                # ✅ 登录成功，直接切换到 INROOM（不再经过大厅）
-                pyglet.clock.schedule_once(lambda dt: self.g.switch_to(AppState.INROOM), 0.3)
+                self.g.switch_to(AppState.INROOM)
             else:
                 self._set_status(f"登录失败: {login_res.reason}", COLOR_TEXT_ERROR)
 

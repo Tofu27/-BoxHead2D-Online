@@ -15,7 +15,7 @@ from core.global_state import GlobalState, AppState
 from core.ws_client import WSClient
 from views.entered_view import EnteredView
 from views.connected_view import ConnectedView
-from views.inroom_view import InRoomView
+from views.ingame_view import InGameView
 
 
 

@@ -86,12 +86,7 @@ func (c *Connected) handleLoginRequest(senderId uint64, message *packets.Packet_
 	}))
 	c.logger.Printf("用户 %s 登录成功", username)
 
-	c.client.SetState(&InRoom{
-		user: &objects.User{
-			ID:       uint64(user.ID),
-			Username: user.Username,
-		},
-	})
+	c.client.SetState(&InGame{})
 }
 
 func (c *Connected) handleRegisterRequest(senderId uint64, message *packets.Packet_RegisterRequest) {

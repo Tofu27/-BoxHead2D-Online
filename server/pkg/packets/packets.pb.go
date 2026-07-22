@@ -34,15 +34,12 @@ type Packet struct {
 	//	*Packet_LoginRequest
 	//	*Packet_LoginResponse
 	//	*Packet_RegisterRequest
-	//	*Packet_RoomInfo
-	//	*Packet_CreateRoomRequest
-	//	*Packet_CreateRoomResponse
-	//	*Packet_JoinRoomRequest
-	//	*Packet_JoinRoomResponse
-	//	*Packet_LeaveRoomRequest
 	//	*Packet_StartGameRequest
-	//	*Packet_RoomJoined
-	//	*Packet_User
+	//	*Packet_StartGameResponse
+	//	*Packet_GameStarting
+	//	*Packet_PlayerList
+	//	*Packet_PlayerJoined
+	//	*Packet_PlayerLeft
 	Msg           isPacket_Msg `protobuf_oneof:"msg"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -164,60 +161,6 @@ func (x *Packet) GetRegisterRequest() *RegisterRequest {
 	return nil
 }
 
-func (x *Packet) GetRoomInfo() *RoomInfo {
-	if x != nil {
-		if x, ok := x.Msg.(*Packet_RoomInfo); ok {
-			return x.RoomInfo
-		}
-	}
-	return nil
-}
-
-func (x *Packet) GetCreateRoomRequest() *CreateRoomRequest {
-	if x != nil {
-		if x, ok := x.Msg.(*Packet_CreateRoomRequest); ok {
-			return x.CreateRoomRequest
-		}
-	}
-	return nil
-}
-
-func (x *Packet) GetCreateRoomResponse() *CreateRoomResponse {
-	if x != nil {
-		if x, ok := x.Msg.(*Packet_CreateRoomResponse); ok {
-			return x.CreateRoomResponse
-		}
-	}
-	return nil
-}
-
-func (x *Packet) GetJoinRoomRequest() *JoinRoomRequest {
-	if x != nil {
-		if x, ok := x.Msg.(*Packet_JoinRoomRequest); ok {
-			return x.JoinRoomRequest
-		}
-	}
-	return nil
-}
-
-func (x *Packet) GetJoinRoomResponse() *JoinRoomResponse {
-	if x != nil {
-		if x, ok := x.Msg.(*Packet_JoinRoomResponse); ok {
-			return x.JoinRoomResponse
-		}
-	}
-	return nil
-}
-
-func (x *Packet) GetLeaveRoomRequest() *LeaveRoomRequest {
-	if x != nil {
-		if x, ok := x.Msg.(*Packet_LeaveRoomRequest); ok {
-			return x.LeaveRoomRequest
-		}
-	}
-	return nil
-}
-
 func (x *Packet) GetStartGameRequest() *StartGameRequest {
 	if x != nil {
 		if x, ok := x.Msg.(*Packet_StartGameRequest); ok {
@@ -227,19 +170,46 @@ func (x *Packet) GetStartGameRequest() *StartGameRequest {
 	return nil
 }
 
-func (x *Packet) GetRoomJoined() *RoomJoined {
+func (x *Packet) GetStartGameResponse() *StartGameResponse {
 	if x != nil {
-		if x, ok := x.Msg.(*Packet_RoomJoined); ok {
-			return x.RoomJoined
+		if x, ok := x.Msg.(*Packet_StartGameResponse); ok {
+			return x.StartGameResponse
 		}
 	}
 	return nil
 }
 
-func (x *Packet) GetUser() *User {
+func (x *Packet) GetGameStarting() *GameStarting {
 	if x != nil {
-		if x, ok := x.Msg.(*Packet_User); ok {
-			return x.User
+		if x, ok := x.Msg.(*Packet_GameStarting); ok {
+			return x.GameStarting
+		}
+	}
+	return nil
+}
+
+func (x *Packet) GetPlayerList() *PlayerList {
+	if x != nil {
+		if x, ok := x.Msg.(*Packet_PlayerList); ok {
+			return x.PlayerList
+		}
+	}
+	return nil
+}
+
+func (x *Packet) GetPlayerJoined() *PlayerJoined {
+	if x != nil {
+		if x, ok := x.Msg.(*Packet_PlayerJoined); ok {
+			return x.PlayerJoined
+		}
+	}
+	return nil
+}
+
+func (x *Packet) GetPlayerLeft() *PlayerLeft {
+	if x != nil {
+		if x, ok := x.Msg.(*Packet_PlayerLeft); ok {
+			return x.PlayerLeft
 		}
 	}
 	return nil
@@ -250,7 +220,7 @@ type isPacket_Msg interface {
 }
 
 type Packet_Id struct {
-	// common
+	// ===== Common =====
 	Id *IdMessage `protobuf:"bytes,2,opt,name=id,proto3,oneof"`
 }
 
@@ -271,7 +241,7 @@ type Packet_Disconnect struct {
 }
 
 type Packet_LoginRequest struct {
-	// auth
+	// ===== Auth =====
 	LoginRequest *LoginRequest `protobuf:"bytes,4,opt,name=login_request,json=loginRequest,proto3,oneof"`
 }
 
@@ -283,41 +253,29 @@ type Packet_RegisterRequest struct {
 	RegisterRequest *RegisterRequest `protobuf:"bytes,20,opt,name=register_request,json=registerRequest,proto3,oneof"`
 }
 
-type Packet_RoomInfo struct {
-	// hall
-	RoomInfo *RoomInfo `protobuf:"bytes,9,opt,name=room_info,json=roomInfo,proto3,oneof"`
-}
-
-type Packet_CreateRoomRequest struct {
-	CreateRoomRequest *CreateRoomRequest `protobuf:"bytes,12,opt,name=create_room_request,json=createRoomRequest,proto3,oneof"`
-}
-
-type Packet_CreateRoomResponse struct {
-	CreateRoomResponse *CreateRoomResponse `protobuf:"bytes,13,opt,name=create_room_response,json=createRoomResponse,proto3,oneof"`
-}
-
-type Packet_JoinRoomRequest struct {
-	JoinRoomRequest *JoinRoomRequest `protobuf:"bytes,14,opt,name=join_room_request,json=joinRoomRequest,proto3,oneof"`
-}
-
-type Packet_JoinRoomResponse struct {
-	JoinRoomResponse *JoinRoomResponse `protobuf:"bytes,15,opt,name=join_room_response,json=joinRoomResponse,proto3,oneof"`
-}
-
-type Packet_LeaveRoomRequest struct {
-	LeaveRoomRequest *LeaveRoomRequest `protobuf:"bytes,21,opt,name=leave_room_request,json=leaveRoomRequest,proto3,oneof"`
-}
-
 type Packet_StartGameRequest struct {
+	// ===== Game =====
 	StartGameRequest *StartGameRequest `protobuf:"bytes,22,opt,name=start_game_request,json=startGameRequest,proto3,oneof"`
 }
 
-type Packet_RoomJoined struct {
-	RoomJoined *RoomJoined `protobuf:"bytes,17,opt,name=room_joined,json=roomJoined,proto3,oneof"`
+type Packet_StartGameResponse struct {
+	StartGameResponse *StartGameResponse `protobuf:"bytes,33,opt,name=start_game_response,json=startGameResponse,proto3,oneof"`
 }
 
-type Packet_User struct {
-	User *User `protobuf:"bytes,18,opt,name=user,proto3,oneof"`
+type Packet_GameStarting struct {
+	GameStarting *GameStarting `protobuf:"bytes,34,opt,name=game_starting,json=gameStarting,proto3,oneof"`
+}
+
+type Packet_PlayerList struct {
+	PlayerList *PlayerList `protobuf:"bytes,40,opt,name=player_list,json=playerList,proto3,oneof"`
+}
+
+type Packet_PlayerJoined struct {
+	PlayerJoined *PlayerJoined `protobuf:"bytes,41,opt,name=player_joined,json=playerJoined,proto3,oneof"`
+}
+
+type Packet_PlayerLeft struct {
+	PlayerLeft *PlayerLeft `protobuf:"bytes,42,opt,name=player_left,json=playerLeft,proto3,oneof"`
 }
 
 func (*Packet_Id) isPacket_Msg() {}
@@ -336,23 +294,17 @@ func (*Packet_LoginResponse) isPacket_Msg() {}
 
 func (*Packet_RegisterRequest) isPacket_Msg() {}
 
-func (*Packet_RoomInfo) isPacket_Msg() {}
-
-func (*Packet_CreateRoomRequest) isPacket_Msg() {}
-
-func (*Packet_CreateRoomResponse) isPacket_Msg() {}
-
-func (*Packet_JoinRoomRequest) isPacket_Msg() {}
-
-func (*Packet_JoinRoomResponse) isPacket_Msg() {}
-
-func (*Packet_LeaveRoomRequest) isPacket_Msg() {}
-
 func (*Packet_StartGameRequest) isPacket_Msg() {}
 
-func (*Packet_RoomJoined) isPacket_Msg() {}
+func (*Packet_StartGameResponse) isPacket_Msg() {}
 
-func (*Packet_User) isPacket_Msg() {}
+func (*Packet_GameStarting) isPacket_Msg() {}
+
+func (*Packet_PlayerList) isPacket_Msg() {}
+
+func (*Packet_PlayerJoined) isPacket_Msg() {}
+
+func (*Packet_PlayerLeft) isPacket_Msg() {}
 
 var File_packets_proto protoreflect.FileDescriptor
 
@@ -360,7 +312,7 @@ const file_packets_proto_rawDesc = "" +
 	"\n" +
 	"\rpackets.proto\x12\apackets\x1a\fcommon.proto\x1a\n" +
 	"auth.proto\x1a\n" +
-	"hall.proto\"\xcf\b\n" +
+	"game.proto\"\xfd\x06\n" +
 	"\x06Packet\x12\x1b\n" +
 	"\tsender_id\x18\x01 \x01(\x04R\bsenderId\x12$\n" +
 	"\x02id\x18\x02 \x01(\v2\x12.packets.IdMessageH\x00R\x02id\x12*\n" +
@@ -373,17 +325,15 @@ const file_packets_proto_rawDesc = "" +
 	"disconnect\x12<\n" +
 	"\rlogin_request\x18\x04 \x01(\v2\x15.packets.LoginRequestH\x00R\floginRequest\x12?\n" +
 	"\x0elogin_response\x18\x05 \x01(\v2\x16.packets.LoginResponseH\x00R\rloginResponse\x12E\n" +
-	"\x10register_request\x18\x14 \x01(\v2\x18.packets.RegisterRequestH\x00R\x0fregisterRequest\x120\n" +
-	"\troom_info\x18\t \x01(\v2\x11.packets.RoomInfoH\x00R\broomInfo\x12L\n" +
-	"\x13create_room_request\x18\f \x01(\v2\x1a.packets.CreateRoomRequestH\x00R\x11createRoomRequest\x12O\n" +
-	"\x14create_room_response\x18\r \x01(\v2\x1b.packets.CreateRoomResponseH\x00R\x12createRoomResponse\x12F\n" +
-	"\x11join_room_request\x18\x0e \x01(\v2\x18.packets.JoinRoomRequestH\x00R\x0fjoinRoomRequest\x12I\n" +
-	"\x12join_room_response\x18\x0f \x01(\v2\x19.packets.JoinRoomResponseH\x00R\x10joinRoomResponse\x12I\n" +
-	"\x12leave_room_request\x18\x15 \x01(\v2\x19.packets.LeaveRoomRequestH\x00R\x10leaveRoomRequest\x12I\n" +
-	"\x12start_game_request\x18\x16 \x01(\v2\x19.packets.StartGameRequestH\x00R\x10startGameRequest\x126\n" +
-	"\vroom_joined\x18\x11 \x01(\v2\x13.packets.RoomJoinedH\x00R\n" +
-	"roomJoined\x12#\n" +
-	"\x04user\x18\x12 \x01(\v2\r.packets.UserH\x00R\x04userB\x05\n" +
+	"\x10register_request\x18\x14 \x01(\v2\x18.packets.RegisterRequestH\x00R\x0fregisterRequest\x12I\n" +
+	"\x12start_game_request\x18\x16 \x01(\v2\x19.packets.StartGameRequestH\x00R\x10startGameRequest\x12L\n" +
+	"\x13start_game_response\x18! \x01(\v2\x1a.packets.StartGameResponseH\x00R\x11startGameResponse\x12<\n" +
+	"\rgame_starting\x18\" \x01(\v2\x15.packets.GameStartingH\x00R\fgameStarting\x126\n" +
+	"\vplayer_list\x18( \x01(\v2\x13.packets.PlayerListH\x00R\n" +
+	"playerList\x12<\n" +
+	"\rplayer_joined\x18) \x01(\v2\x15.packets.PlayerJoinedH\x00R\fplayerJoined\x126\n" +
+	"\vplayer_left\x18* \x01(\v2\x13.packets.PlayerLeftH\x00R\n" +
+	"playerLeftB\x05\n" +
 	"\x03msgB\rZ\vpkg/packetsb\x06proto3"
 
 var (
@@ -400,24 +350,21 @@ func file_packets_proto_rawDescGZIP() []byte {
 
 var file_packets_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_packets_proto_goTypes = []any{
-	(*Packet)(nil),             // 0: packets.Packet
-	(*IdMessage)(nil),          // 1: packets.IdMessage
-	(*ChatMessage)(nil),        // 2: packets.ChatMessage
-	(*DenyResponse)(nil),       // 3: packets.DenyResponse
-	(*OkResponse)(nil),         // 4: packets.OkResponse
-	(*DisconnectMessage)(nil),  // 5: packets.DisconnectMessage
-	(*LoginRequest)(nil),       // 6: packets.LoginRequest
-	(*LoginResponse)(nil),      // 7: packets.LoginResponse
-	(*RegisterRequest)(nil),    // 8: packets.RegisterRequest
-	(*RoomInfo)(nil),           // 9: packets.RoomInfo
-	(*CreateRoomRequest)(nil),  // 10: packets.CreateRoomRequest
-	(*CreateRoomResponse)(nil), // 11: packets.CreateRoomResponse
-	(*JoinRoomRequest)(nil),    // 12: packets.JoinRoomRequest
-	(*JoinRoomResponse)(nil),   // 13: packets.JoinRoomResponse
-	(*LeaveRoomRequest)(nil),   // 14: packets.LeaveRoomRequest
-	(*StartGameRequest)(nil),   // 15: packets.StartGameRequest
-	(*RoomJoined)(nil),         // 16: packets.RoomJoined
-	(*User)(nil),               // 17: packets.User
+	(*Packet)(nil),            // 0: packets.Packet
+	(*IdMessage)(nil),         // 1: packets.IdMessage
+	(*ChatMessage)(nil),       // 2: packets.ChatMessage
+	(*DenyResponse)(nil),      // 3: packets.DenyResponse
+	(*OkResponse)(nil),        // 4: packets.OkResponse
+	(*DisconnectMessage)(nil), // 5: packets.DisconnectMessage
+	(*LoginRequest)(nil),      // 6: packets.LoginRequest
+	(*LoginResponse)(nil),     // 7: packets.LoginResponse
+	(*RegisterRequest)(nil),   // 8: packets.RegisterRequest
+	(*StartGameRequest)(nil),  // 9: packets.StartGameRequest
+	(*StartGameResponse)(nil), // 10: packets.StartGameResponse
+	(*GameStarting)(nil),      // 11: packets.GameStarting
+	(*PlayerList)(nil),        // 12: packets.PlayerList
+	(*PlayerJoined)(nil),      // 13: packets.PlayerJoined
+	(*PlayerLeft)(nil),        // 14: packets.PlayerLeft
 }
 var file_packets_proto_depIdxs = []int32{
 	1,  // 0: packets.Packet.id:type_name -> packets.IdMessage
@@ -428,20 +375,17 @@ var file_packets_proto_depIdxs = []int32{
 	6,  // 5: packets.Packet.login_request:type_name -> packets.LoginRequest
 	7,  // 6: packets.Packet.login_response:type_name -> packets.LoginResponse
 	8,  // 7: packets.Packet.register_request:type_name -> packets.RegisterRequest
-	9,  // 8: packets.Packet.room_info:type_name -> packets.RoomInfo
-	10, // 9: packets.Packet.create_room_request:type_name -> packets.CreateRoomRequest
-	11, // 10: packets.Packet.create_room_response:type_name -> packets.CreateRoomResponse
-	12, // 11: packets.Packet.join_room_request:type_name -> packets.JoinRoomRequest
-	13, // 12: packets.Packet.join_room_response:type_name -> packets.JoinRoomResponse
-	14, // 13: packets.Packet.leave_room_request:type_name -> packets.LeaveRoomRequest
-	15, // 14: packets.Packet.start_game_request:type_name -> packets.StartGameRequest
-	16, // 15: packets.Packet.room_joined:type_name -> packets.RoomJoined
-	17, // 16: packets.Packet.user:type_name -> packets.User
-	17, // [17:17] is the sub-list for method output_type
-	17, // [17:17] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	9,  // 8: packets.Packet.start_game_request:type_name -> packets.StartGameRequest
+	10, // 9: packets.Packet.start_game_response:type_name -> packets.StartGameResponse
+	11, // 10: packets.Packet.game_starting:type_name -> packets.GameStarting
+	12, // 11: packets.Packet.player_list:type_name -> packets.PlayerList
+	13, // 12: packets.Packet.player_joined:type_name -> packets.PlayerJoined
+	14, // 13: packets.Packet.player_left:type_name -> packets.PlayerLeft
+	14, // [14:14] is the sub-list for method output_type
+	14, // [14:14] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_packets_proto_init() }
@@ -451,7 +395,7 @@ func file_packets_proto_init() {
 	}
 	file_common_proto_init()
 	file_auth_proto_init()
-	file_hall_proto_init()
+	file_game_proto_init()
 	file_packets_proto_msgTypes[0].OneofWrappers = []any{
 		(*Packet_Id)(nil),
 		(*Packet_Chat)(nil),
@@ -461,15 +405,12 @@ func file_packets_proto_init() {
 		(*Packet_LoginRequest)(nil),
 		(*Packet_LoginResponse)(nil),
 		(*Packet_RegisterRequest)(nil),
-		(*Packet_RoomInfo)(nil),
-		(*Packet_CreateRoomRequest)(nil),
-		(*Packet_CreateRoomResponse)(nil),
-		(*Packet_JoinRoomRequest)(nil),
-		(*Packet_JoinRoomResponse)(nil),
-		(*Packet_LeaveRoomRequest)(nil),
 		(*Packet_StartGameRequest)(nil),
-		(*Packet_RoomJoined)(nil),
-		(*Packet_User)(nil),
+		(*Packet_StartGameResponse)(nil),
+		(*Packet_GameStarting)(nil),
+		(*Packet_PlayerList)(nil),
+		(*Packet_PlayerJoined)(nil),
+		(*Packet_PlayerLeft)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

@@ -24,10 +24,10 @@ _sym_db = _symbol_database.Default()
 
 import common_pb2 as common__pb2
 import auth_pb2 as auth__pb2
-import hall_pb2 as hall__pb2
+import game_pb2 as game__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rpackets.proto\x12\x07packets\x1a\x0c\x63ommon.proto\x1a\nauth.proto\x1a\nhall.proto\"\xdd\x06\n\x06Packet\x12\x11\n\tsender_id\x18\x01 \x01(\x04\x12 \n\x02id\x18\x02 \x01(\x0b\x32\x12.packets.IdMessageH\x00\x12$\n\x04\x63hat\x18\x03 \x01(\x0b\x32\x14.packets.ChatMessageH\x00\x12.\n\rdeny_response\x18\x07 \x01(\x0b\x32\x15.packets.DenyResponseH\x00\x12*\n\x0bok_response\x18\x06 \x01(\x0b\x32\x13.packets.OkResponseH\x00\x12\x30\n\ndisconnect\x18\x13 \x01(\x0b\x32\x1a.packets.DisconnectMessageH\x00\x12.\n\rlogin_request\x18\x04 \x01(\x0b\x32\x15.packets.LoginRequestH\x00\x12\x30\n\x0elogin_response\x18\x05 \x01(\x0b\x32\x16.packets.LoginResponseH\x00\x12\x34\n\x10register_request\x18\x14 \x01(\x0b\x32\x18.packets.RegisterRequestH\x00\x12&\n\troom_info\x18\t \x01(\x0b\x32\x11.packets.RoomInfoH\x00\x12\x39\n\x13\x63reate_room_request\x18\x0c \x01(\x0b\x32\x1a.packets.CreateRoomRequestH\x00\x12;\n\x14\x63reate_room_response\x18\r \x01(\x0b\x32\x1b.packets.CreateRoomResponseH\x00\x12\x35\n\x11join_room_request\x18\x0e \x01(\x0b\x32\x18.packets.JoinRoomRequestH\x00\x12\x37\n\x12join_room_response\x18\x0f \x01(\x0b\x32\x19.packets.JoinRoomResponseH\x00\x12\x37\n\x12leave_room_request\x18\x15 \x01(\x0b\x32\x19.packets.LeaveRoomRequestH\x00\x12\x37\n\x12start_game_request\x18\x16 \x01(\x0b\x32\x19.packets.StartGameRequestH\x00\x12*\n\x0broom_joined\x18\x11 \x01(\x0b\x32\x13.packets.RoomJoinedH\x00\x12\x1d\n\x04user\x18\x12 \x01(\x0b\x32\r.packets.UserH\x00\x42\x05\n\x03msgB\rZ\x0bpkg/packetsb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rpackets.proto\x12\x07packets\x1a\x0c\x63ommon.proto\x1a\nauth.proto\x1a\ngame.proto\"\xbc\x05\n\x06Packet\x12\x11\n\tsender_id\x18\x01 \x01(\x04\x12 \n\x02id\x18\x02 \x01(\x0b\x32\x12.packets.IdMessageH\x00\x12$\n\x04\x63hat\x18\x03 \x01(\x0b\x32\x14.packets.ChatMessageH\x00\x12.\n\rdeny_response\x18\x07 \x01(\x0b\x32\x15.packets.DenyResponseH\x00\x12*\n\x0bok_response\x18\x06 \x01(\x0b\x32\x13.packets.OkResponseH\x00\x12\x30\n\ndisconnect\x18\x13 \x01(\x0b\x32\x1a.packets.DisconnectMessageH\x00\x12.\n\rlogin_request\x18\x04 \x01(\x0b\x32\x15.packets.LoginRequestH\x00\x12\x30\n\x0elogin_response\x18\x05 \x01(\x0b\x32\x16.packets.LoginResponseH\x00\x12\x34\n\x10register_request\x18\x14 \x01(\x0b\x32\x18.packets.RegisterRequestH\x00\x12\x37\n\x12start_game_request\x18\x16 \x01(\x0b\x32\x19.packets.StartGameRequestH\x00\x12\x39\n\x13start_game_response\x18! \x01(\x0b\x32\x1a.packets.StartGameResponseH\x00\x12.\n\rgame_starting\x18\" \x01(\x0b\x32\x15.packets.GameStartingH\x00\x12*\n\x0bplayer_list\x18( \x01(\x0b\x32\x13.packets.PlayerListH\x00\x12.\n\rplayer_joined\x18) \x01(\x0b\x32\x15.packets.PlayerJoinedH\x00\x12*\n\x0bplayer_left\x18* \x01(\x0b\x32\x13.packets.PlayerLeftH\x00\x42\x05\n\x03msgB\rZ\x0bpkg/packetsb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -36,5 +36,5 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'Z\013pkg/packets'
   _globals['_PACKET']._serialized_start=65
-  _globals['_PACKET']._serialized_end=926
+  _globals['_PACKET']._serialized_end=765
 # @@protoc_insertion_point(module_scope)

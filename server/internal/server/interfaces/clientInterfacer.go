@@ -3,7 +3,6 @@ package interfaces
 import (
 	"context"
 	"server/internal/server/db"
-	"server/internal/server/managers"
 	"server/internal/server/objects"
 	"server/pkg/packets"
 )
@@ -38,5 +37,5 @@ type ClientInterfacer interface {
 
 	DbTx() *DbTx
 	SetUserInfo(user *objects.User)
-	GetRoomManager() *managers.RoomManager
+	GetUserInfo() *objects.User
 }

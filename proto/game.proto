@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package packets;
+
+option go_package = "pkg/packets";
+
+import "common.proto";
+
+// 玩家列表（服务端推送）
+message PlayerList {
+    repeated User players = 1;
+    User room_owner = 2; // 房主
+    uint32 max_players = 3;
+}
+
+// 玩家加入通知（服务端推送）
+message PlayerJoined {
+    User player = 1;
+}
+
+// 玩家离开通知（服务端推送）
+message PlayerLeft {
+    uint64 player_id = 1;
+    string username = 2;
+}
+
+// 开始游戏（客户端请求）
+message StartGameRequest {}
+
+// 开始游戏响应（服务端）
+message StartGameResponse {
+    bool success = 1;
+    string reason = 2;
+}
+
+// 游戏即将开始（服务端推送）
+message GameStarting {
+    uint64 room_id = 1; // 房间ID，用 Hub 中的固定值
+}

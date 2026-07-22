@@ -6,33 +6,30 @@ option go_package = "pkg/packets";
 
 import "common.proto";
 import "auth.proto";
-import "hall.proto";
+import "game.proto";
 
 message Packet {
     uint64 sender_id = 1;
 
     oneof msg {
-        // common
+        // ===== Common =====
         IdMessage id = 2;
         ChatMessage chat = 3;
         DenyResponse deny_response = 7;
         OkResponse ok_response = 6;
         DisconnectMessage disconnect = 19;
 
-        // auth
+        // ===== Auth =====
         LoginRequest login_request = 4;
         LoginResponse login_response = 5;
         RegisterRequest register_request = 20;
 
-        // hall
-        RoomInfo room_info = 9;
-        CreateRoomRequest create_room_request = 12;
-        CreateRoomResponse create_room_response = 13;
-        JoinRoomRequest join_room_request = 14;
-        JoinRoomResponse join_room_response = 15;
-        LeaveRoomRequest leave_room_request = 21;
+        // ===== Game =====
         StartGameRequest start_game_request = 22;
-        RoomJoined room_joined = 17;
-        User user = 18;
+        StartGameResponse start_game_response = 33;
+        GameStarting game_starting = 34;
+        PlayerList player_list = 40;
+        PlayerJoined player_joined = 41;
+        PlayerLeft player_left = 42;
     }
 }

@@ -5,7 +5,6 @@ type Msg = isPacket_Msg
 
 // ===== Common =====
 
-// NewIdMessage 创建 ID 消息（服务器分配客户端 ID）
 func NewIdMessage(clientID uint64) Msg {
 	return &Packet_Id{
 		Id: &IdMessage{
@@ -14,14 +13,12 @@ func NewIdMessage(clientID uint64) Msg {
 	}
 }
 
-// NewOkResponse 创建通用成功响应
 func NewOkResponse() Msg {
 	return &Packet_OkResponse{
 		OkResponse: &OkResponse{},
 	}
 }
 
-// NewDenyResponse 创建通用错误响应
 func NewDenyResponse(reason string) Msg {
 	return &Packet_DenyResponse{
 		DenyResponse: &DenyResponse{
@@ -30,7 +27,6 @@ func NewDenyResponse(reason string) Msg {
 	}
 }
 
-// NewDisconnect 创建断开连接消息
 func NewDisconnect(reason string) Msg {
 	return &Packet_Disconnect{
 		Disconnect: &DisconnectMessage{
@@ -39,7 +35,6 @@ func NewDisconnect(reason string) Msg {
 	}
 }
 
-// NewChat 创建聊天消息
 func NewChat(msg string) Msg {
 	return &Packet_Chat{
 		Chat: &ChatMessage{
@@ -50,7 +45,6 @@ func NewChat(msg string) Msg {
 
 // ===== Auth =====
 
-// NewLoginResponse 创建登录响应
 func NewLoginResponse(success bool, reason string, user *User) Msg {
 	return &Packet_LoginResponse{
 		LoginResponse: &LoginResponse{
@@ -61,36 +55,48 @@ func NewLoginResponse(success bool, reason string, user *User) Msg {
 	}
 }
 
-// ===== Hall =====
+// ===== Game =====
 
-// NewCreateRoomResponse 创建房间响应
-func NewCreateRoomResponse(success bool, reason string, room *RoomInfo) Msg {
-	return &Packet_CreateRoomResponse{
-		CreateRoomResponse: &CreateRoomResponse{
-			Success: success,
-			Reason:  reason,
-			Room:    room,
+func NewPlayerList(players []*User, roomOwner *User, maxPlayers uint32) Msg {
+	return &Packet_PlayerList{
+		PlayerList: &PlayerList{
+			Players:    players,
+			RoomOwner:  roomOwner,
+			MaxPlayers: maxPlayers,
 		},
 	}
 }
 
-// NewJoinRoomResponse 加入房间响应
-func NewJoinRoomResponse(success bool, reason string, room *RoomInfo) Msg {
-	return &Packet_JoinRoomResponse{
-		JoinRoomResponse: &JoinRoomResponse{
-			Success: success,
-			Reason:  reason,
-			Room:    room,
+func NewPlayerJoined(player *User) Msg {
+	return &Packet_PlayerJoined{
+		PlayerJoined: &PlayerJoined{
+			Player: player,
 		},
 	}
 }
 
-// NewRoomJoined 房间加入/更新通知（服务端推送）
-func NewRoomJoined(room *RoomInfo, users []*User) Msg {
-	return &Packet_RoomJoined{
-		RoomJoined: &RoomJoined{
-			Room:  room,
-			Users: users,
+func NewPlayerLeft(playerID uint64, username string) Msg {
+	return &Packet_PlayerLeft{
+		PlayerLeft: &PlayerLeft{
+			PlayerId: playerID,
+			Username: username,
+		},
+	}
+}
+
+func NewStartGameResponse(success bool, reason string) Msg {
+	return &Packet_StartGameResponse{
+		StartGameResponse: &StartGameResponse{
+			Success: success,
+			Reason:  reason,
+		},
+	}
+}
+
+func NewGameStarting(roomID uint64) Msg {
+	return &Packet_GameStarting{
+		GameStarting: &GameStarting{
+			RoomId: roomID,
 		},
 	}
 }

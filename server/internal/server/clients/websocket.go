@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"server/internal/server"
 	"server/internal/server/interfaces"
-	"server/internal/server/managers"
 	"server/internal/server/objects"
 	"server/internal/server/states"
 	"server/pkg/packets"
@@ -194,6 +193,6 @@ func (c *WebSocketClient) SetUserInfo(user *objects.User) {
 	c.user = user
 }
 
-func (c *WebSocketClient) GetRoomManager() *managers.RoomManager {
-	return c.hub.RoomManager
+func (c *WebSocketClient) GetUserInfo() *objects.User {
+	return c.user
 }
