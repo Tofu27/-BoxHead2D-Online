@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"server/internal/server"
+	"server/internal/server/game"
 	"server/internal/server/interfaces"
 	"server/internal/server/objects"
 	"server/internal/server/states"
@@ -24,8 +25,6 @@ type WebSocketClient struct {
 	closeOnce sync.Once
 	logger    *log.Logger
 	dbTx      *interfaces.DbTx
-
-	user *objects.User
 }
 
 func NewWebSocketClient(hub *server.Hub, writer http.ResponseWriter, request *http.Request) (interfaces.ClientInterfacer, error) {
@@ -189,10 +188,10 @@ func (c *WebSocketClient) Shutdown(reason string) {
 	})
 }
 
-func (c *WebSocketClient) SetUserInfo(user *objects.User) {
-	c.user = user
+func (c *WebSocketClient) GetGameMap() *game.GameMap {
+	return c.hub.GameMap
 }
 
-func (c *WebSocketClient) GetUserInfo() *objects.User {
-	return c.user
+func (c *WebSocketClient) GetGameObject() *objects.GameObject {
+	return c.hub.GameObject
 }

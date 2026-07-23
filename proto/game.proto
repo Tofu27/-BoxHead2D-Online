@@ -4,36 +4,63 @@ package packets;
 
 option go_package = "pkg/packets";
 
-import "common.proto";
 
-// 玩家列表（服务端推送）
-message PlayerList {
-    repeated User players = 1;
-    User room_owner = 2; // 房主
-    uint32 max_players = 3;
+// game.proto
+
+// 地图数据（服务端推送）
+message MapData {
+    uint32 width = 1; // 地图宽度（像素）
+    uint32 height = 2; // 地图高度（像素）
+    uint32 tile_width = 3; // 单个瓦片宽度
+    uint32 tile_height = 4; // 单个瓦片高度
+    repeated uint32 collision_grid = 5; // 一维碰撞数组（0=可通行，1=阻挡）
+    uint32 grid_width = 6; // 网格列数
+    uint32 grid_height = 7; // 网格行数
+    repeated SpawnPoint spawn_points = 8;
 }
 
-// 玩家加入通知（服务端推送）
-message PlayerJoined {
-    User player = 1;
+message SpawnPoint {
+    float x = 1;
+    float y = 2;
 }
 
-// 玩家离开通知（服务端推送）
-message PlayerLeft {
+// 玩家生成信息（服务端推送）
+message PlayerSpawn {
     uint64 player_id = 1;
     string username = 2;
+    float x = 3;
+    float y = 4;
+    float health = 5;
+    float max_health = 6;
+    float speed = 7;
 }
 
-// 开始游戏（客户端请求）
-message StartGameRequest {}
-
-// 开始游戏响应（服务端）
-message StartGameResponse {
-    bool success = 1;
-    string reason = 2;
+// 玩家状态更新（服务端广播）
+message PlayerState {
+    uint64 player_id = 1;
+    float x = 2;
+    float y = 3;
+    float health = 4;
+    bool is_moving = 5;
+    float direction = 6; // 新增方向，方便客户端平滑插值
+    float speed = 7; // 当前速度（可选）
 }
 
-// 游戏即将开始（服务端推送）
-message GameStarting {
-    uint64 room_id = 1; // 房间ID，用 Hub 中的固定值
+// 玩家离开（服务端广播）
+message PlayerLeave {
+    uint64 player_id = 1;
+}
+
+// 世界状态（服务端广播）
+message WorldState {
+    repeated PlayerState players = 1;
+    // 后续可添加：子弹、怪物等
+}
+
+// 客户端->服务端：移动输入（方向向量或角度）
+message MoveInput {
+    float dir_x = 1; // 单位向量 x 分量 (-1 ~ 1)
+    float dir_y = 2; // 单位向量 y 分量 (-1 ~ 1)
+    uint64 timestamp = 3; // 客户端本地时间戳（毫秒），用于防作弊和延迟补偿
+    uint32 seq = 4; // 递增序列号，用于丢包检测
 }

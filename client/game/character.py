@@ -35,7 +35,7 @@ class Character(arcade.Sprite):
         
         # 基础属性
         self.health = self._config.get("health", 100)
-        self.health_max = self.health
+        self.max_health = self.health
         self.speed = self._config.get("speed", 800)
         self.hit_damage = self._config.get("hit_damage", 20)
 
@@ -200,13 +200,7 @@ class Player(Character):
         super().__init__(x, y, physics_engine, cfg)
 
         self.speed = 1600
-        self.is_attack = False
-        self.energy = int(0)
         self.health = int(500)
-        self.kill_recover = int(5)
-        self.explosion_damage = 100
-        self.money = 150
-        self.luck = 6
 
         # Player body sprite
         self.body.texture = self.body_texture

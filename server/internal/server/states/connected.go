@@ -78,15 +78,15 @@ func (c *Connected) handleLoginRequest(senderId uint64, message *packets.Packet_
 		Username: user.Username,
 	}
 
-	c.client.SetUserInfo(userObj)
-
 	c.client.SendToSelf(packets.NewLoginResponse(true, "登录成功", &packets.User{
 		Id:       userObj.ID,
 		Username: userObj.Username,
 	}))
 	c.logger.Printf("用户 %s 登录成功", username)
 
-	c.client.SetState(&InGame{})
+	c.client.SetState(&InGame{
+		user: userObj,
+	})
 }
 
 func (c *Connected) handleRegisterRequest(senderId uint64, message *packets.Packet_RegisterRequest) {

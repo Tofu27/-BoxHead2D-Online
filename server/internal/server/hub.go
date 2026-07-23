@@ -25,7 +25,8 @@ type Hub struct {
 	UnRegisterChan chan interfaces.ClientInterfacer
 	dbPool         *sql.DB
 
-	GameMap *game.GameMap // ✅ 新增地图模块
+	GameMap    *game.GameMap // ✅ 新增地图模块
+	GameObject *objects.GameObject
 }
 
 func (h *Hub) NewDbTx() *interfaces.DbTx {
@@ -39,6 +40,9 @@ func NewHub(dbPool *sql.DB) *Hub {
 
 	hub := &Hub{
 		Clients: objects.NewSyncIDMap[interfaces.ClientInterfacer](),
+		GameObject: &objects.GameObject{
+			Users: objects.NewSyncIDMap[*objects.User](),
+		},
 
 		BroadcastChan:  make(chan *packets.Packet),
 		RegisterChan:   make(chan interfaces.ClientInterfacer),
@@ -46,11 +50,13 @@ func NewHub(dbPool *sql.DB) *Hub {
 		dbPool:         dbPool,
 	}
 
-	hub.GameMap = game.NewGameMap("resources/map1.json")
-	if err := hub.GameMap.Load(); err != nil {
+	gameMap, err := game.LoadMap("resources/map1.json")
+	if err != nil {
 		log.Printf("加载地图失败: %v", err)
 	} else {
-		log.Printf("地图加载成功: %dx%d", hub.GameMap.Grid.Width, hub.GameMap.Grid.Height)
+		hub.GameMap = gameMap
+		log.Printf("地图加载成功: %dx%d, 出生点: %d",
+			gameMap.Width, gameMap.Height, len(gameMap.SpawnPoints))
 	}
 
 	return hub

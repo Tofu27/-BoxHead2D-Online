@@ -7,12 +7,11 @@
 package packets
 
 import (
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
-
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -22,30 +21,35 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// 玩家列表（服务端推送）
-type PlayerList struct {
+// 地图数据（服务端推送）
+type MapData struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Players       []*User                `protobuf:"bytes,1,rep,name=players,proto3" json:"players,omitempty"`
-	RoomOwner     *User                  `protobuf:"bytes,2,opt,name=room_owner,json=roomOwner,proto3" json:"room_owner,omitempty"` // 房主
-	MaxPlayers    uint32                 `protobuf:"varint,3,opt,name=max_players,json=maxPlayers,proto3" json:"max_players,omitempty"`
+	Width         uint32                 `protobuf:"varint,1,opt,name=width,proto3" json:"width,omitempty"`                                             // 地图宽度（像素）
+	Height        uint32                 `protobuf:"varint,2,opt,name=height,proto3" json:"height,omitempty"`                                           // 地图高度（像素）
+	TileWidth     uint32                 `protobuf:"varint,3,opt,name=tile_width,json=tileWidth,proto3" json:"tile_width,omitempty"`                    // 单个瓦片宽度
+	TileHeight    uint32                 `protobuf:"varint,4,opt,name=tile_height,json=tileHeight,proto3" json:"tile_height,omitempty"`                 // 单个瓦片高度
+	CollisionGrid []uint32               `protobuf:"varint,5,rep,packed,name=collision_grid,json=collisionGrid,proto3" json:"collision_grid,omitempty"` // 一维碰撞数组（0=可通行，1=阻挡）
+	GridWidth     uint32                 `protobuf:"varint,6,opt,name=grid_width,json=gridWidth,proto3" json:"grid_width,omitempty"`                    // 网格列数
+	GridHeight    uint32                 `protobuf:"varint,7,opt,name=grid_height,json=gridHeight,proto3" json:"grid_height,omitempty"`                 // 网格行数
+	SpawnPoints   []*SpawnPoint          `protobuf:"bytes,8,rep,name=spawn_points,json=spawnPoints,proto3" json:"spawn_points,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *PlayerList) Reset() {
-	*x = PlayerList{}
+func (x *MapData) Reset() {
+	*x = MapData{}
 	mi := &file_game_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *PlayerList) String() string {
+func (x *MapData) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*PlayerList) ProtoMessage() {}
+func (*MapData) ProtoMessage() {}
 
-func (x *PlayerList) ProtoReflect() protoreflect.Message {
+func (x *MapData) ProtoReflect() protoreflect.Message {
 	mi := &file_game_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -57,100 +61,147 @@ func (x *PlayerList) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PlayerList.ProtoReflect.Descriptor instead.
-func (*PlayerList) Descriptor() ([]byte, []int) {
+// Deprecated: Use MapData.ProtoReflect.Descriptor instead.
+func (*MapData) Descriptor() ([]byte, []int) {
 	return file_game_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *PlayerList) GetPlayers() []*User {
+func (x *MapData) GetWidth() uint32 {
 	if x != nil {
-		return x.Players
-	}
-	return nil
-}
-
-func (x *PlayerList) GetRoomOwner() *User {
-	if x != nil {
-		return x.RoomOwner
-	}
-	return nil
-}
-
-func (x *PlayerList) GetMaxPlayers() uint32 {
-	if x != nil {
-		return x.MaxPlayers
+		return x.Width
 	}
 	return 0
 }
 
-// 玩家加入通知（服务端推送）
-type PlayerJoined struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Player        *User                  `protobuf:"bytes,1,opt,name=player,proto3" json:"player,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *PlayerJoined) Reset() {
-	*x = PlayerJoined{}
-	mi := &file_game_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PlayerJoined) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PlayerJoined) ProtoMessage() {}
-
-func (x *PlayerJoined) ProtoReflect() protoreflect.Message {
-	mi := &file_game_proto_msgTypes[1]
+func (x *MapData) GetHeight() uint32 {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
+		return x.Height
 	}
-	return mi.MessageOf(x)
+	return 0
 }
 
-// Deprecated: Use PlayerJoined.ProtoReflect.Descriptor instead.
-func (*PlayerJoined) Descriptor() ([]byte, []int) {
-	return file_game_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *PlayerJoined) GetPlayer() *User {
+func (x *MapData) GetTileWidth() uint32 {
 	if x != nil {
-		return x.Player
+		return x.TileWidth
+	}
+	return 0
+}
+
+func (x *MapData) GetTileHeight() uint32 {
+	if x != nil {
+		return x.TileHeight
+	}
+	return 0
+}
+
+func (x *MapData) GetCollisionGrid() []uint32 {
+	if x != nil {
+		return x.CollisionGrid
 	}
 	return nil
 }
 
-// 玩家离开通知（服务端推送）
-type PlayerLeft struct {
+func (x *MapData) GetGridWidth() uint32 {
+	if x != nil {
+		return x.GridWidth
+	}
+	return 0
+}
+
+func (x *MapData) GetGridHeight() uint32 {
+	if x != nil {
+		return x.GridHeight
+	}
+	return 0
+}
+
+func (x *MapData) GetSpawnPoints() []*SpawnPoint {
+	if x != nil {
+		return x.SpawnPoints
+	}
+	return nil
+}
+
+type SpawnPoint struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	PlayerId      uint64                 `protobuf:"varint,1,opt,name=player_id,json=playerId,proto3" json:"player_id,omitempty"`
-	Username      string                 `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
+	X             float32                `protobuf:"fixed32,1,opt,name=x,proto3" json:"x,omitempty"`
+	Y             float32                `protobuf:"fixed32,2,opt,name=y,proto3" json:"y,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *PlayerLeft) Reset() {
-	*x = PlayerLeft{}
+func (x *SpawnPoint) Reset() {
+	*x = SpawnPoint{}
+	mi := &file_game_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SpawnPoint) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SpawnPoint) ProtoMessage() {}
+
+func (x *SpawnPoint) ProtoReflect() protoreflect.Message {
+	mi := &file_game_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SpawnPoint.ProtoReflect.Descriptor instead.
+func (*SpawnPoint) Descriptor() ([]byte, []int) {
+	return file_game_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *SpawnPoint) GetX() float32 {
+	if x != nil {
+		return x.X
+	}
+	return 0
+}
+
+func (x *SpawnPoint) GetY() float32 {
+	if x != nil {
+		return x.Y
+	}
+	return 0
+}
+
+// 玩家生成信息（服务端推送）
+type PlayerSpawn struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PlayerId      uint64                 `protobuf:"varint,1,opt,name=player_id,json=playerId,proto3" json:"player_id,omitempty"`
+	Username      string                 `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
+	X             float32                `protobuf:"fixed32,3,opt,name=x,proto3" json:"x,omitempty"`
+	Y             float32                `protobuf:"fixed32,4,opt,name=y,proto3" json:"y,omitempty"`
+	Health        float32                `protobuf:"fixed32,5,opt,name=health,proto3" json:"health,omitempty"`
+	MaxHealth     float32                `protobuf:"fixed32,6,opt,name=max_health,json=maxHealth,proto3" json:"max_health,omitempty"`
+	Speed         float32                `protobuf:"fixed32,7,opt,name=speed,proto3" json:"speed,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PlayerSpawn) Reset() {
+	*x = PlayerSpawn{}
 	mi := &file_game_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *PlayerLeft) String() string {
+func (x *PlayerSpawn) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*PlayerLeft) ProtoMessage() {}
+func (*PlayerSpawn) ProtoMessage() {}
 
-func (x *PlayerLeft) ProtoReflect() protoreflect.Message {
+func (x *PlayerSpawn) ProtoReflect() protoreflect.Message {
 	mi := &file_game_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -162,46 +213,88 @@ func (x *PlayerLeft) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PlayerLeft.ProtoReflect.Descriptor instead.
-func (*PlayerLeft) Descriptor() ([]byte, []int) {
+// Deprecated: Use PlayerSpawn.ProtoReflect.Descriptor instead.
+func (*PlayerSpawn) Descriptor() ([]byte, []int) {
 	return file_game_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *PlayerLeft) GetPlayerId() uint64 {
+func (x *PlayerSpawn) GetPlayerId() uint64 {
 	if x != nil {
 		return x.PlayerId
 	}
 	return 0
 }
 
-func (x *PlayerLeft) GetUsername() string {
+func (x *PlayerSpawn) GetUsername() string {
 	if x != nil {
 		return x.Username
 	}
 	return ""
 }
 
-// 开始游戏（客户端请求）
-type StartGameRequest struct {
+func (x *PlayerSpawn) GetX() float32 {
+	if x != nil {
+		return x.X
+	}
+	return 0
+}
+
+func (x *PlayerSpawn) GetY() float32 {
+	if x != nil {
+		return x.Y
+	}
+	return 0
+}
+
+func (x *PlayerSpawn) GetHealth() float32 {
+	if x != nil {
+		return x.Health
+	}
+	return 0
+}
+
+func (x *PlayerSpawn) GetMaxHealth() float32 {
+	if x != nil {
+		return x.MaxHealth
+	}
+	return 0
+}
+
+func (x *PlayerSpawn) GetSpeed() float32 {
+	if x != nil {
+		return x.Speed
+	}
+	return 0
+}
+
+// 玩家状态更新（服务端广播）
+type PlayerState struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	PlayerId      uint64                 `protobuf:"varint,1,opt,name=player_id,json=playerId,proto3" json:"player_id,omitempty"`
+	X             float32                `protobuf:"fixed32,2,opt,name=x,proto3" json:"x,omitempty"`
+	Y             float32                `protobuf:"fixed32,3,opt,name=y,proto3" json:"y,omitempty"`
+	Health        float32                `protobuf:"fixed32,4,opt,name=health,proto3" json:"health,omitempty"`
+	IsMoving      bool                   `protobuf:"varint,5,opt,name=is_moving,json=isMoving,proto3" json:"is_moving,omitempty"`
+	Direction     float32                `protobuf:"fixed32,6,opt,name=direction,proto3" json:"direction,omitempty"` // 新增方向，方便客户端平滑插值
+	Speed         float32                `protobuf:"fixed32,7,opt,name=speed,proto3" json:"speed,omitempty"`         // 当前速度（可选）
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *StartGameRequest) Reset() {
-	*x = StartGameRequest{}
+func (x *PlayerState) Reset() {
+	*x = PlayerState{}
 	mi := &file_game_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *StartGameRequest) String() string {
+func (x *PlayerState) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*StartGameRequest) ProtoMessage() {}
+func (*PlayerState) ProtoMessage() {}
 
-func (x *StartGameRequest) ProtoReflect() protoreflect.Message {
+func (x *PlayerState) ProtoReflect() protoreflect.Message {
 	mi := &file_game_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -213,86 +306,127 @@ func (x *StartGameRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use StartGameRequest.ProtoReflect.Descriptor instead.
-func (*StartGameRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use PlayerState.ProtoReflect.Descriptor instead.
+func (*PlayerState) Descriptor() ([]byte, []int) {
 	return file_game_proto_rawDescGZIP(), []int{3}
 }
 
-// 开始游戏响应（服务端）
-type StartGameResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
-	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *StartGameResponse) Reset() {
-	*x = StartGameResponse{}
-	mi := &file_game_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *StartGameResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StartGameResponse) ProtoMessage() {}
-
-func (x *StartGameResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_game_proto_msgTypes[4]
+func (x *PlayerState) GetPlayerId() uint64 {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
+		return x.PlayerId
 	}
-	return mi.MessageOf(x)
+	return 0
 }
 
-// Deprecated: Use StartGameResponse.ProtoReflect.Descriptor instead.
-func (*StartGameResponse) Descriptor() ([]byte, []int) {
-	return file_game_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *StartGameResponse) GetSuccess() bool {
+func (x *PlayerState) GetX() float32 {
 	if x != nil {
-		return x.Success
+		return x.X
+	}
+	return 0
+}
+
+func (x *PlayerState) GetY() float32 {
+	if x != nil {
+		return x.Y
+	}
+	return 0
+}
+
+func (x *PlayerState) GetHealth() float32 {
+	if x != nil {
+		return x.Health
+	}
+	return 0
+}
+
+func (x *PlayerState) GetIsMoving() bool {
+	if x != nil {
+		return x.IsMoving
 	}
 	return false
 }
 
-func (x *StartGameResponse) GetReason() string {
+func (x *PlayerState) GetDirection() float32 {
 	if x != nil {
-		return x.Reason
+		return x.Direction
 	}
-	return ""
+	return 0
 }
 
-// 游戏即将开始（服务端推送）
-type GameStarting struct {
+func (x *PlayerState) GetSpeed() float32 {
+	if x != nil {
+		return x.Speed
+	}
+	return 0
+}
+
+// 玩家离开（服务端广播）
+type PlayerLeave struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	RoomId        uint64                 `protobuf:"varint,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"` // 房间ID，用 Hub 中的固定值
+	PlayerId      uint64                 `protobuf:"varint,1,opt,name=player_id,json=playerId,proto3" json:"player_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GameStarting) Reset() {
-	*x = GameStarting{}
+func (x *PlayerLeave) Reset() {
+	*x = PlayerLeave{}
+	mi := &file_game_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlayerLeave) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlayerLeave) ProtoMessage() {}
+
+func (x *PlayerLeave) ProtoReflect() protoreflect.Message {
+	mi := &file_game_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlayerLeave.ProtoReflect.Descriptor instead.
+func (*PlayerLeave) Descriptor() ([]byte, []int) {
+	return file_game_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *PlayerLeave) GetPlayerId() uint64 {
+	if x != nil {
+		return x.PlayerId
+	}
+	return 0
+}
+
+// 世界状态（服务端广播）
+type WorldState struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Players       []*PlayerState         `protobuf:"bytes,1,rep,name=players,proto3" json:"players,omitempty"` // 后续可添加：子弹、怪物等
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WorldState) Reset() {
+	*x = WorldState{}
 	mi := &file_game_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GameStarting) String() string {
+func (x *WorldState) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GameStarting) ProtoMessage() {}
+func (*WorldState) ProtoMessage() {}
 
-func (x *GameStarting) ProtoReflect() protoreflect.Message {
+func (x *WorldState) ProtoReflect() protoreflect.Message {
 	mi := &file_game_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -304,14 +438,83 @@ func (x *GameStarting) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GameStarting.ProtoReflect.Descriptor instead.
-func (*GameStarting) Descriptor() ([]byte, []int) {
+// Deprecated: Use WorldState.ProtoReflect.Descriptor instead.
+func (*WorldState) Descriptor() ([]byte, []int) {
 	return file_game_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *GameStarting) GetRoomId() uint64 {
+func (x *WorldState) GetPlayers() []*PlayerState {
 	if x != nil {
-		return x.RoomId
+		return x.Players
+	}
+	return nil
+}
+
+// 客户端->服务端：移动输入（方向向量或角度）
+type MoveInput struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DirX          float32                `protobuf:"fixed32,1,opt,name=dir_x,json=dirX,proto3" json:"dir_x,omitempty"` // 单位向量 x 分量 (-1 ~ 1)
+	DirY          float32                `protobuf:"fixed32,2,opt,name=dir_y,json=dirY,proto3" json:"dir_y,omitempty"` // 单位向量 y 分量 (-1 ~ 1)
+	Timestamp     uint64                 `protobuf:"varint,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`    // 客户端本地时间戳（毫秒），用于防作弊和延迟补偿
+	Seq           uint32                 `protobuf:"varint,4,opt,name=seq,proto3" json:"seq,omitempty"`                // 递增序列号，用于丢包检测
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MoveInput) Reset() {
+	*x = MoveInput{}
+	mi := &file_game_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MoveInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MoveInput) ProtoMessage() {}
+
+func (x *MoveInput) ProtoReflect() protoreflect.Message {
+	mi := &file_game_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MoveInput.ProtoReflect.Descriptor instead.
+func (*MoveInput) Descriptor() ([]byte, []int) {
+	return file_game_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *MoveInput) GetDirX() float32 {
+	if x != nil {
+		return x.DirX
+	}
+	return 0
+}
+
+func (x *MoveInput) GetDirY() float32 {
+	if x != nil {
+		return x.DirY
+	}
+	return 0
+}
+
+func (x *MoveInput) GetTimestamp() uint64 {
+	if x != nil {
+		return x.Timestamp
+	}
+	return 0
+}
+
+func (x *MoveInput) GetSeq() uint32 {
+	if x != nil {
+		return x.Seq
 	}
 	return 0
 }
@@ -321,26 +524,51 @@ var File_game_proto protoreflect.FileDescriptor
 const file_game_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"game.proto\x12\apackets\x1a\fcommon.proto\"\x84\x01\n" +
+	"game.proto\x12\apackets\"\x96\x02\n" +
+	"\aMapData\x12\x14\n" +
+	"\x05width\x18\x01 \x01(\rR\x05width\x12\x16\n" +
+	"\x06height\x18\x02 \x01(\rR\x06height\x12\x1d\n" +
 	"\n" +
-	"PlayerList\x12'\n" +
-	"\aplayers\x18\x01 \x03(\v2\r.packets.UserR\aplayers\x12,\n" +
+	"tile_width\x18\x03 \x01(\rR\ttileWidth\x12\x1f\n" +
+	"\vtile_height\x18\x04 \x01(\rR\n" +
+	"tileHeight\x12%\n" +
+	"\x0ecollision_grid\x18\x05 \x03(\rR\rcollisionGrid\x12\x1d\n" +
 	"\n" +
-	"room_owner\x18\x02 \x01(\v2\r.packets.UserR\troomOwner\x12\x1f\n" +
-	"\vmax_players\x18\x03 \x01(\rR\n" +
-	"maxPlayers\"5\n" +
-	"\fPlayerJoined\x12%\n" +
-	"\x06player\x18\x01 \x01(\v2\r.packets.UserR\x06player\"E\n" +
+	"grid_width\x18\x06 \x01(\rR\tgridWidth\x12\x1f\n" +
+	"\vgrid_height\x18\a \x01(\rR\n" +
+	"gridHeight\x126\n" +
+	"\fspawn_points\x18\b \x03(\v2\x13.packets.SpawnPointR\vspawnPoints\"(\n" +
 	"\n" +
-	"PlayerLeft\x12\x1b\n" +
+	"SpawnPoint\x12\f\n" +
+	"\x01x\x18\x01 \x01(\x02R\x01x\x12\f\n" +
+	"\x01y\x18\x02 \x01(\x02R\x01y\"\xaf\x01\n" +
+	"\vPlayerSpawn\x12\x1b\n" +
 	"\tplayer_id\x18\x01 \x01(\x04R\bplayerId\x12\x1a\n" +
-	"\busername\x18\x02 \x01(\tR\busername\"\x12\n" +
-	"\x10StartGameRequest\"E\n" +
-	"\x11StartGameResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x16\n" +
-	"\x06reason\x18\x02 \x01(\tR\x06reason\"'\n" +
-	"\fGameStarting\x12\x17\n" +
-	"\aroom_id\x18\x01 \x01(\x04R\x06roomIdB\rZ\vpkg/packetsb\x06proto3"
+	"\busername\x18\x02 \x01(\tR\busername\x12\f\n" +
+	"\x01x\x18\x03 \x01(\x02R\x01x\x12\f\n" +
+	"\x01y\x18\x04 \x01(\x02R\x01y\x12\x16\n" +
+	"\x06health\x18\x05 \x01(\x02R\x06health\x12\x1d\n" +
+	"\n" +
+	"max_health\x18\x06 \x01(\x02R\tmaxHealth\x12\x14\n" +
+	"\x05speed\x18\a \x01(\x02R\x05speed\"\xaf\x01\n" +
+	"\vPlayerState\x12\x1b\n" +
+	"\tplayer_id\x18\x01 \x01(\x04R\bplayerId\x12\f\n" +
+	"\x01x\x18\x02 \x01(\x02R\x01x\x12\f\n" +
+	"\x01y\x18\x03 \x01(\x02R\x01y\x12\x16\n" +
+	"\x06health\x18\x04 \x01(\x02R\x06health\x12\x1b\n" +
+	"\tis_moving\x18\x05 \x01(\bR\bisMoving\x12\x1c\n" +
+	"\tdirection\x18\x06 \x01(\x02R\tdirection\x12\x14\n" +
+	"\x05speed\x18\a \x01(\x02R\x05speed\"*\n" +
+	"\vPlayerLeave\x12\x1b\n" +
+	"\tplayer_id\x18\x01 \x01(\x04R\bplayerId\"<\n" +
+	"\n" +
+	"WorldState\x12.\n" +
+	"\aplayers\x18\x01 \x03(\v2\x14.packets.PlayerStateR\aplayers\"e\n" +
+	"\tMoveInput\x12\x13\n" +
+	"\x05dir_x\x18\x01 \x01(\x02R\x04dirX\x12\x13\n" +
+	"\x05dir_y\x18\x02 \x01(\x02R\x04dirY\x12\x1c\n" +
+	"\ttimestamp\x18\x03 \x01(\x04R\ttimestamp\x12\x10\n" +
+	"\x03seq\x18\x04 \x01(\rR\x03seqB\rZ\vpkg/packetsb\x06proto3"
 
 var (
 	file_game_proto_rawDescOnce sync.Once
@@ -354,25 +582,24 @@ func file_game_proto_rawDescGZIP() []byte {
 	return file_game_proto_rawDescData
 }
 
-var file_game_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_game_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_game_proto_goTypes = []any{
-	(*PlayerList)(nil),        // 0: packets.PlayerList
-	(*PlayerJoined)(nil),      // 1: packets.PlayerJoined
-	(*PlayerLeft)(nil),        // 2: packets.PlayerLeft
-	(*StartGameRequest)(nil),  // 3: packets.StartGameRequest
-	(*StartGameResponse)(nil), // 4: packets.StartGameResponse
-	(*GameStarting)(nil),      // 5: packets.GameStarting
-	(*User)(nil),              // 6: packets.User
+	(*MapData)(nil),     // 0: packets.MapData
+	(*SpawnPoint)(nil),  // 1: packets.SpawnPoint
+	(*PlayerSpawn)(nil), // 2: packets.PlayerSpawn
+	(*PlayerState)(nil), // 3: packets.PlayerState
+	(*PlayerLeave)(nil), // 4: packets.PlayerLeave
+	(*WorldState)(nil),  // 5: packets.WorldState
+	(*MoveInput)(nil),   // 6: packets.MoveInput
 }
 var file_game_proto_depIdxs = []int32{
-	6, // 0: packets.PlayerList.players:type_name -> packets.User
-	6, // 1: packets.PlayerList.room_owner:type_name -> packets.User
-	6, // 2: packets.PlayerJoined.player:type_name -> packets.User
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	1, // 0: packets.MapData.spawn_points:type_name -> packets.SpawnPoint
+	3, // 1: packets.WorldState.players:type_name -> packets.PlayerState
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_game_proto_init() }
@@ -380,14 +607,13 @@ func file_game_proto_init() {
 	if File_game_proto != nil {
 		return
 	}
-	file_common_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_game_proto_rawDesc), len(file_game_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

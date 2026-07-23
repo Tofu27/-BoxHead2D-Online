@@ -3,10 +3,12 @@ package game
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
+	"server/internal/server/objects"
 )
 
-// TileLayer 表示地图的一个图层
+// TileLayer 地图图层
 type TileLayer struct {
 	Name   string `json:"name"`
 	Width  int    `json:"width"`
@@ -14,115 +16,205 @@ type TileLayer struct {
 	Data   []int  `json:"data"`
 }
 
-// TiledMap 表示完整的地图
+// TiledMap 原始地图结构
 type TiledMap struct {
-	Width  int         `json:"width"`
-	Height int         `json:"height"`
-	Layers []TileLayer `json:"layers"`
+	Width      int         `json:"width"`
+	Height     int         `json:"height"`
+	TileWidth  int         `json:"tilewidth"`
+	TileHeight int         `json:"tileheight"`
+	Layers     []TileLayer `json:"layers"`
 }
 
-// CollisionGrid 碰撞矩阵
-type CollisionGrid struct {
-	Width  int
-	Height int
-	Grid   [][]bool // true = 阻挡, false = 可通行
-}
-
-// GameMap 游戏地图管理器
+// GameMap 游戏地图（服务端用）
 type GameMap struct {
-	filePath string
-	TiledMap *TiledMap
-	Grid     *CollisionGrid
+	Width         int // 像素宽度
+	Height        int // 像素高度
+	TileWidth     int
+	TileHeight    int
+	GridWidth     int      // 网格列数
+	GridHeight    int      // 网格行数
+	CollisionGrid [][]bool // true=阻挡
+	SpawnPoints   []SpawnPoint
 }
 
-// NewGameMap 创建地图管理器
-func NewGameMap(filePath string) *GameMap {
-	return &GameMap{
-		filePath: filePath,
-	}
+type SpawnPoint struct {
+	X float64
+	Y float64
 }
 
-// Load 加载地图文件
-func (m *GameMap) Load() error {
-	data, err := os.ReadFile(m.filePath)
+// LoadMap 加载地图 JSON 文件
+func LoadMap(path string) (*GameMap, error) {
+	data, err := os.ReadFile(path)
 	if err != nil {
-		return fmt.Errorf("读取地图文件失败: %w", err)
+		return nil, fmt.Errorf("读取地图文件失败: %w", err)
 	}
 
 	var tiledMap TiledMap
 	if err := json.Unmarshal(data, &tiledMap); err != nil {
-		return fmt.Errorf("解析地图JSON失败: %w", err)
+		return nil, fmt.Errorf("解析地图JSON失败: %w", err)
 	}
 
-	m.TiledMap = &tiledMap
-	m.buildCollisionGrid()
-	return nil
-}
-
-// buildCollisionGrid 构建碰撞矩阵
-func (m *GameMap) buildCollisionGrid() {
-	if m.TiledMap == nil {
-		return
-	}
-
-	// 找到 wall 图层
+	// 查找 wall 图层
 	var wallLayer *TileLayer
-	for i := range m.TiledMap.Layers {
-		if m.TiledMap.Layers[i].Name == "wall" {
-			wallLayer = &m.TiledMap.Layers[i]
+	for i := range tiledMap.Layers {
+		if tiledMap.Layers[i].Name == "wall" {
+			wallLayer = &tiledMap.Layers[i]
 			break
 		}
 	}
 
 	if wallLayer == nil {
-		fmt.Println("警告: 未找到 'wall' 图层，地图全部可通行")
-		m.Grid = &CollisionGrid{
-			Width:  m.TiledMap.Width,
-			Height: m.TiledMap.Height,
-			Grid:   make([][]bool, m.TiledMap.Height),
-		}
-		return
+		return nil, fmt.Errorf("未找到 'wall' 图层")
 	}
 
+	// 构建碰撞矩阵
 	grid := make([][]bool, wallLayer.Height)
 	for y := 0; y < wallLayer.Height; y++ {
 		grid[y] = make([]bool, wallLayer.Width)
 		for x := 0; x < wallLayer.Width; x++ {
 			idx := y*wallLayer.Width + x
-			// 值大于 0 表示有图块，不可通行
 			grid[y][x] = wallLayer.Data[idx] != 0
 		}
 	}
 
-	m.Grid = &CollisionGrid{
-		Width:  wallLayer.Width,
-		Height: wallLayer.Height,
-		Grid:   grid,
+	mapWidth := tiledMap.Width * tiledMap.TileWidth
+	mapHeight := tiledMap.Height * tiledMap.TileHeight
+
+	// 怪物生成出生点（取地图中间上下两个门口附近）
+	spawnPoints := []SpawnPoint{
+		{X: float64(mapWidth / 2), Y: 0},
+		{X: float64(mapWidth / 2), Y: float64(mapHeight)},
 	}
+
+	return &GameMap{
+		Width:         mapWidth,
+		Height:        mapHeight,
+		TileWidth:     tiledMap.TileWidth,
+		TileHeight:    tiledMap.TileHeight,
+		GridWidth:     wallLayer.Width,
+		GridHeight:    wallLayer.Height,
+		CollisionGrid: grid,
+		SpawnPoints:   spawnPoints,
+	}, nil
 }
 
-// IsWalkable 判断某 Tile 是否可通行
+// IsWalkable 判断某个瓦片坐标是否可通行
 func (m *GameMap) IsWalkable(tileX, tileY int) bool {
-	if m.Grid == nil {
-		return true // 没有碰撞数据，全部可通行
-	}
-	if tileY < 0 || tileY >= m.Grid.Height {
+	if tileY < 0 || tileY >= m.GridHeight {
 		return false
 	}
-	if tileX < 0 || tileX >= m.Grid.Width {
+	if tileX < 0 || tileX >= m.GridWidth {
 		return false
 	}
-	return !m.Grid.Grid[tileY][tileX]
-}
-
-// WorldToTile 将世界坐标转换为 Tile 坐标
-func (m *GameMap) WorldToTile(worldX, worldY float64) (int, int) {
-	tileSize := 32.0 // 与 Tiled 设置一致
-	return int(worldX / tileSize), int(worldY / tileSize)
+	return !m.CollisionGrid[tileY][tileX]
 }
 
 // IsWalkableWorld 判断世界坐标是否可通行
 func (m *GameMap) IsWalkableWorld(worldX, worldY float64) bool {
-	tileX, tileY := m.WorldToTile(worldX, worldY)
+	tileX := int(worldX / float64(m.TileWidth))
+	tileY := int(worldY / float64(m.TileHeight))
 	return m.IsWalkable(tileX, tileY)
+}
+
+// GetSpawnPoint 获取一个出生点
+func (m *GameMap) GetSpawnPoint(index int) SpawnPoint {
+	if len(m.SpawnPoints) == 0 {
+		return SpawnPoint{X: 100, Y: 100}
+	}
+	return m.SpawnPoints[index%len(m.SpawnPoints)]
+}
+
+// IsRectColliding 检测以(cx,cy)为中心的矩形是否与墙碰撞
+func (m *GameMap) IsRectColliding(cx, cy, w, h float64) bool {
+	left := cx - w/2
+	right := cx + w/2
+	top := cy - h/2
+	bottom := cy + h/2
+
+	// 计算覆盖的瓦片范围（包含边界）
+	startX := int(math.Floor(left / float64(m.TileWidth)))
+	endX := int(math.Floor((right - 1e-9) / float64(m.TileWidth)))
+	startY := int(math.Floor(top / float64(m.TileHeight)))
+	endY := int(math.Floor((bottom - 1e-9) / float64(m.TileHeight)))
+
+	// 裁剪到地图边界
+	if startX < 0 {
+		startX = 0
+	}
+	if endX >= m.GridWidth {
+		endX = m.GridWidth - 1
+	}
+	if startY < 0 {
+		startY = 0
+	}
+	if endY >= m.GridHeight {
+		endY = m.GridHeight - 1
+	}
+
+	for ty := startY; ty <= endY; ty++ {
+		for tx := startX; tx <= endX; tx++ {
+			if m.CollisionGrid[ty][tx] {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// CorrectPosition 修正玩家位置，返回新中心坐标和是否修正
+func (m *GameMap) CorrectPosition(entity *objects.PlayerEntity) (newX, newY float64, corrected bool) {
+	x, y := entity.X, entity.Y
+	w, h := float64(entity.Width), float64(entity.Height)
+
+	// 如果当前位置合法，直接返回
+	if !m.IsRectColliding(x, y, w, h) {
+		return x, y, false
+	}
+
+	const step = 0.5    // 每次微调步长（像素）
+	const maxSteps = 20 // 最大尝试步数，总修正范围 ±10 像素
+
+	// 尝试沿 X 轴向左微调
+	for i := 1; i <= maxSteps; i++ {
+		newX := x - float64(i)*step
+		// 检查边界和碰撞
+		if newX-w/2 >= 0 && newX+w/2 <= float64(m.Width) && !m.IsRectColliding(newX, y, w, h) {
+			return newX, y, true
+		}
+	}
+	// 沿 X 轴向右微调
+	for i := 1; i <= maxSteps; i++ {
+		newX := x + float64(i)*step
+		if newX-w/2 >= 0 && newX+w/2 <= float64(m.Width) && !m.IsRectColliding(newX, y, w, h) {
+			return newX, y, true
+		}
+	}
+
+	// 尝试沿 Y 轴向上微调
+	for i := 1; i <= maxSteps; i++ {
+		newY := y - float64(i)*step
+		if newY-h/2 >= 0 && newY+h/2 <= float64(m.Height) && !m.IsRectColliding(x, newY, w, h) {
+			return x, newY, true
+		}
+	}
+	// 沿 Y 轴向下微调
+	for i := 1; i <= maxSteps; i++ {
+		newY := y + float64(i)*step
+		if newY-h/2 >= 0 && newY+h/2 <= float64(m.Height) && !m.IsRectColliding(x, newY, w, h) {
+			return x, newY, true
+		}
+	}
+
+	// 若以上均失败，强制传送到第一个出生点（或地图中心）
+	spawn := m.GetSpawnPoint(0)
+	if m.IsRectColliding(spawn.X, spawn.Y, w, h) {
+		// 如果出生点也碰撞，使用地图中心
+		centerX, centerY := float64(m.Width)/2, float64(m.Height)/2
+		if !m.IsRectColliding(centerX, centerY, w, h) {
+			return centerX, centerY, true
+		}
+		// 保底值（一般不会发生）
+		return 0, 0, true
+	}
+	return spawn.X, spawn.Y, true
 }

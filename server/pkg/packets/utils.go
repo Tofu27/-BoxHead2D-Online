@@ -55,48 +55,65 @@ func NewLoginResponse(success bool, reason string, user *User) Msg {
 	}
 }
 
-// ===== Game =====
-
-func NewPlayerList(players []*User, roomOwner *User, maxPlayers uint32) Msg {
-	return &Packet_PlayerList{
-		PlayerList: &PlayerList{
-			Players:    players,
-			RoomOwner:  roomOwner,
-			MaxPlayers: maxPlayers,
+// NewMapData 创建地图数据消息
+func NewMapData(width, height, tileWidth, tileHeight, gridWidth, gridHeight uint32,
+	collisionGrid []uint32, spawnPoints []*SpawnPoint) Msg {
+	return &Packet_MapData{
+		MapData: &MapData{
+			Width:         width,
+			Height:        height,
+			TileWidth:     tileWidth,
+			TileHeight:    tileHeight,
+			GridWidth:     gridWidth,
+			GridHeight:    gridHeight,
+			CollisionGrid: collisionGrid,
+			SpawnPoints:   spawnPoints,
 		},
 	}
 }
 
-func NewPlayerJoined(player *User) Msg {
-	return &Packet_PlayerJoined{
-		PlayerJoined: &PlayerJoined{
-			Player: player,
+// NewPlayerSpawn 创建玩家生成消息
+func NewPlayerSpawn(playerID uint64, username string, x, y, health, maxHealth, speed float32) Msg {
+	return &Packet_PlayerSpawn{
+		PlayerSpawn: &PlayerSpawn{
+			PlayerId:  playerID,
+			Username:  username,
+			X:         x,
+			Y:         y,
+			Health:    health,
+			MaxHealth: maxHealth,
+			Speed:     speed,
 		},
 	}
 }
 
-func NewPlayerLeft(playerID uint64, username string) Msg {
-	return &Packet_PlayerLeft{
-		PlayerLeft: &PlayerLeft{
+// NewPlayerState 创建单个玩家状态消息
+func NewPlayerState(playerID uint64, x, y, health float32, isMoving bool) Msg {
+	return &Packet_PlayerState{
+		PlayerState: &PlayerState{
 			PlayerId: playerID,
-			Username: username,
+			X:        x,
+			Y:        y,
+			Health:   health,
+			IsMoving: isMoving,
 		},
 	}
 }
 
-func NewStartGameResponse(success bool, reason string) Msg {
-	return &Packet_StartGameResponse{
-		StartGameResponse: &StartGameResponse{
-			Success: success,
-			Reason:  reason,
+// NewPlayerLeave 创建玩家离开消息
+func NewPlayerLeave(playerID uint64) Msg {
+	return &Packet_PlayerLeave{
+		PlayerLeave: &PlayerLeave{
+			PlayerId: playerID,
 		},
 	}
 }
 
-func NewGameStarting(roomID uint64) Msg {
-	return &Packet_GameStarting{
-		GameStarting: &GameStarting{
-			RoomId: roomID,
+// NewWorldState 创建世界状态消息
+func NewWorldState(players []*PlayerState) Msg {
+	return &Packet_WorldState{
+		WorldState: &WorldState{
+			Players: players,
 		},
 	}
 }

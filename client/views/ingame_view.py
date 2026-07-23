@@ -21,11 +21,9 @@ class InGameView(arcade.View):
         self.config = ConfigLoader()
         self.physics_engine = None
         
-        # 玩家
         self.player = None
 
         self.w, self.h = self.window.get_size()
-
         self.camera_sprites = arcade.Camera(self.w, self.h)
         self.camera_gui = arcade.Camera(self.w, self.h)
 
@@ -38,6 +36,11 @@ class InGameView(arcade.View):
         # ✅ 地图尺寸（从 ResourceManager 获取）
         self.map_width = 0
         self.map_height = 0
+
+        
+        # ✅ 保存回调引用，以便取消注册
+        self._report_timer = 0.0
+        self._packet_callback_ref = self._on_packet_received
 
 
     def setup(self):
@@ -52,19 +55,13 @@ class InGameView(arcade.View):
 
         # 2. 获取地图资源
         wall_list = self.resource_mgr.get_wall_list()
-        ground_list = self.resource_mgr.get_ground_list()
-
         self.map_width, self.map_height = self.resource_mgr.get_map_wh()
 
         # Create the physics engine
         damping = 0.01
         gravity = (0, 0)
         self.physics_engine = PymunkPhysicsEngine(gravity, damping)
-
-        
-        start_x = self.map_width / 2 if self.map_width > 0 else 300
-        start_y = self.map_height / 2 if self.map_height > 0 else 300
-        self.player = Player(start_x, start_y, self.physics_engine)
+        self.player = Player(-1000, -1000, self.physics_engine)
 
         self.physics_engine.add_sprite(
             self.player,
@@ -81,6 +78,21 @@ class InGameView(arcade.View):
             body_type=PymunkPhysicsEngine.STATIC,
         )
 
+        # 6. ✅ 注册通用数据包回调（类似于 Godot 的 connect）
+        ws = self.g.ws
+        ws.on_packet(self._packet_callback_ref)
+
+        # 7. 发送初始化请求
+        pkt = packets_pb2.Packet()
+        ws.send(pkt)
+
+
+    def on_hide_view(self):
+        """视图隐藏时取消注册，避免消息泄漏"""
+        print("InGameView: 取消数据包回调")
+        ws = self.g.ws
+        if ws:
+            ws.remove_packet_callback(self._packet_callback_ref)
 
     def on_draw(self):
         self.clear()
@@ -94,7 +106,6 @@ class InGameView(arcade.View):
                 layer.draw()
 
         self.player.draw()
-
         self.camera_gui.use()
         
 
@@ -102,12 +113,48 @@ class InGameView(arcade.View):
         # 物理更新
         if self.physics_engine:
             self.physics_engine.step()
-
             
         self.player.update()
         self.scroll_to_player()
 
+        # 定期上报状态
+        self._report_timer += delta_time
+        if self._report_timer >= 1.0 / 1:  # 每秒 1 次
+            self._report_timer = 0
+            self._send_player_state()
 
+    def _on_packet_received(self, pkt: packets_pb2.Packet):
+        print("接收到消息:", pkt)
+        if pkt.HasField('player_spawn'):
+            if pkt.sender_id != self.g.client_id:
+                return
+            
+            player_spawn = pkt.player_spawn
+            self.player.pos.x = player_spawn.x
+            self.player.pos.y = player_spawn.y
+            self.player.health = player_spawn.health
+            self.player.max_health = player_spawn.max_health
+            self.player.speed = player_spawn.speed
+
+            self.physics_engine.set_position(self.player, (player_spawn.x, player_spawn.y))
+    
+    def _send_player_state(self):
+        """向服务端上报当前玩家的完整状态"""
+        ws = self.g.ws
+        if not ws or not ws.connected:
+            return
+        
+        if not self.player:
+            return
+
+        pkt = packets_pb2.Packet()
+        report = pkt.player_spawn
+        report.x = self.player.pos.x
+        report.y = self.player.pos.y
+        report.health = self.player.health
+        report.max_health = self.player.max_health
+        report.speed = self.player.speed
+        ws.send(pkt)
 
     def scroll_to_player(self) -> None:
         """

@@ -35,7 +35,7 @@ class Color:
 class Utils:
     """Utility functions."""
 
-    IS_TESTING = False  # normal test flag
+    IS_TESTING = True  # normal test flag
     IS_TESTING_PF = False  # path finding test flag
 
     BULLET_FORCE = 1000
