@@ -1,0 +1,108 @@
+{
+  "player": {
+    "base_health": 500,
+    "base_speed": 1600,
+    "base_energy": 0,
+    "kill_recover": 5,
+    "luck": 6,
+    "explosion_damage": 100,
+    "money": 150,
+    "weapons": ["pistol"]
+  },
+  "rambo": {
+    "base_health": 500,
+    "base_speed": 1600,
+    "base_energy": 0,
+    "kill_recover": 5,
+    "luck": 6,
+    "explosion_damage": 100,
+    "money": 150,
+    "weapons": ["pistol"],
+    "skill": "damage_to_energy"
+  },
+  "redbit": {
+    "base_health": 500,
+    "base_speed": 1600,
+    "base_energy": 30,
+    "kill_recover": 5,
+    "luck": 6,
+    "explosion_damage": 100,
+    "money": 150,
+    "weapons": ["pistol"],
+    "skill": "dash"
+  },
+  "enemies": {
+    "white": {
+      "health": 100,
+      "speed": 800,
+      "hit_damage": 20,
+      "reward_exp": 10,
+      "reward_money": 5,
+      "ai_type": "chase"
+    },
+    "red": {
+      "health": 300,
+      "speed": 800,
+      "hit_damage": 20,
+      "shoot_range": 200,
+      "bullet": "fireball",
+      "bullet_damage": 30,
+      "cd_max": 90,
+      "reward_exp": 30,
+      "reward_money": 15,
+      "ai_type": "ranged"
+    },
+    "crack": {
+      "health": 200,
+      "speed": 1000,
+      "hit_damage": 40,
+      "reward_exp": 20,
+      "reward_money": 10,
+      "ai_type": "chase"
+    },
+    "big_mouth": {
+      "health": 250,
+      "speed": 800,
+      "hit_damage": 20,
+      "shoot_range": 300,
+      "bullet": "fireball",
+      "bullet_damage": 50,
+      "cd_max": 70,
+      "reward_exp": 35,
+      "reward_money": 20,
+      "ai_type": "ranged"
+    },
+    "crash": {
+      "health": 100,
+      "speed": 1000,
+      "hit_damage": 80,
+      "shoot_range": 200,
+      "cd_max": 120,
+      "reward_exp": 25,
+      "reward_money": 12,
+      "ai_type": "dash"
+    },
+    "tank": {
+      "health": 400,
+      "speed": 800,
+      "hit_damage": 120,
+      "shoot_range": 200,
+      "cd_max": 120,
+      "reward_exp": 50,
+      "reward_money": 25,
+      "ai_type": "dash"
+    },
+    "boss_red": {
+      "health": 4200,
+      "speed": 5600,
+      "hit_damage": 250,
+      "shoot_range": 300,
+      "cd_max": 120,
+      "bullet": "fireball",
+      "phase2_threshold": 2100,
+      "reward_exp": 500,
+      "reward_money": 200,
+      "ai_type": "boss"
+    }
+  }
+}

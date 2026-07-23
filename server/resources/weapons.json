@@ -1,0 +1,72 @@
+{
+  "pistol": {
+    "type": "gun",
+    "damage": 30,
+    "cd_max": 30,
+    "cd_min": 8,
+    "bullet_speed": 25,
+    "cost": 0,
+    "life_span": 20,
+    "bullet": "bullet",
+    "sound": "wpn_fire_usp45.wav",
+    "texture": "graphics/weapon/Pistol.png"
+  },
+  "uzi": {
+    "type": "gun",
+    "damage": 30,
+    "cd_max": 20,
+    "cd_min": 4,
+    "bullet_speed": 30,
+    "cost": 4,
+    "life_span": 25,
+    "bullet": "energy_bullet",
+    "sound": "wpn_fire_p90.wav",
+    "texture": "graphics/weapon/Uzi.png"
+  },
+  "shotgun": {
+    "type": "gun",
+    "damage": 40,
+    "cd_max": 40,
+    "cd_min": 12,
+    "bullet_speed": 25,
+    "cost": 15,
+    "life_span": 10,
+    "bullet": "energy_bullet",
+    "bullet_num": 3,
+    "max_bullets": 12,
+    "sound": "wpn_fire_m1014.wav",
+    "texture": "graphics/weapon/Shotgun.png"
+  },
+  "rocket": {
+    "type": "gun",
+    "damage": 0,
+    "cd_max": 40,
+    "cd_min": 12,
+    "bullet_speed": 32,
+    "cost": 30,
+    "life_span": 15,
+    "bullet": "missile",
+    "bullet_num": 1,
+    "sound": "wpn_fire_rocket.wav",
+    "texture": "graphics/weapon/Rocket.png"
+  },
+  "wall": {
+    "type": "placeable",
+    "cost": 5,
+    "health_max": 300,
+    "sound": "wall_placed.wav",
+    "texture": "graphics/weapon/PlacedWall0.png"
+  },
+  "barrel": {
+    "type": "placeable",
+    "cost": 25,
+    "sound": "physics_place_object.wav",
+    "texture": "graphics/weapon/Barrel.png"
+  },
+  "mine": {
+    "type": "placeable",
+    "cost": 25,
+    "sound": "physics_place_object.wav",
+    "texture": "graphics/weapon/Mine.png"
+  }
+}

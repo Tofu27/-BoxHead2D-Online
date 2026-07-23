@@ -1,0 +1,32 @@
+{
+  "bullet": {
+    "texture": "graphics/weapon/Bullet.png",
+    "width": 6,
+    "height": 6,
+    "life_span": 20
+  },
+  "energy_bullet": {
+    "texture": "graphics/weapon/EnergyBullet.png",
+    "width": 6,
+    "height": 6,
+    "life_span": 20
+  },
+  "missile": {
+    "texture": "graphics/weapon/Missile.png",
+    "width": 15,
+    "height": 15,
+    "life_span": 15
+  },
+  "fireball": {
+    "texture": "graphics/weapon/FireBall.png",
+    "width": 20,
+    "height": 20,
+    "life_span": 60
+  },
+  "boss_fireball": {
+    "texture": "graphics/weapon/FireBall.png",
+    "width": 20,
+    "height": 20,
+    "life_span": 90
+  }
+}

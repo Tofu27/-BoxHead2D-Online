@@ -247,7 +247,7 @@ class ConnectedView(arcade.View):
             login_res = pkt.login_response
             if login_res.success:
                 self.g.user = login_res.user
-                self.g.switch_to(AppState.INROOM)
+                self.g.switch_to(AppState.INGAME)
             else:
                 self._set_status(f"登录失败: {login_res.reason}", COLOR_TEXT_ERROR)
 

@@ -35,11 +35,11 @@ class BoxHead2d(arcade.Window):
         # 3. 注册所有状态视图
         entered_view = EnteredView()
         connected_view = ConnectedView()
-        inroom_view = InRoomView()
+        ingame_view = InGameView()
 
         self.g.register_state(AppState.ENTERED, entered_view, "ENTERED")
         self.g.register_state(AppState.CONNECTED, connected_view, "CONNECTED")
-        self.g.register_state(AppState.INROOM, inroom_view, "INROOM")
+        self.g.register_state(AppState.INGAME, ingame_view, "INGAME")
 
         # 4. 切换到初始状态：ENTERED（自动连接服务器）
         self.g.switch_to(AppState.ENTERED)
