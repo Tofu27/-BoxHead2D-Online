@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"zinx/utils"
 	"zinx/ziface"
 )
 
@@ -32,7 +33,8 @@ func CallBackToClient(conn *net.TCPConn, data []byte, cnt int) error {
 }
 
 func (s *Server) Start() {
-	fmt.Printf("[Start] 服务监听 IP: %s, 端口:%d 中\n", s.IP, s.Port)
+	fmt.Printf("[Start] 服务名 %s, 监听 IP: %s, 端口:%d 中\n", utils.GlobalObject.Name, utils.GlobalObject.Host, utils.GlobalObject.TcpPort)
+	fmt.Printf("[Start] 版本号 %s, 最大连接数: %d, 数据包最大值: %d\n", utils.GlobalObject.Version, utils.GlobalObject.MaxConn, utils.GlobalObject.MaxPackageSize)
 
 	go func() {
 		// 获取一个TCP的Addr
@@ -88,10 +90,10 @@ func (s *Server) AddRouter(router ziface.IRouter) {
 func NewServer(name string) ziface.IServer {
 
 	s := &Server{
-		Name:      name,
+		Name:      utils.GlobalObject.Name,
 		IpVersion: "tcp4",
-		IP:        "0.0.0.0",
-		Port:      8999,
+		IP:        utils.GlobalObject.Host,
+		Port:      utils.GlobalObject.TcpPort,
 		Router:    nil,
 	}
 
