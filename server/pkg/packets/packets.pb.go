@@ -35,11 +35,6 @@ type Packet struct {
 	//	*Packet_LoginResponse
 	//	*Packet_RegisterRequest
 	//	*Packet_MapData
-	//	*Packet_PlayerSpawn
-	//	*Packet_PlayerState
-	//	*Packet_PlayerLeave
-	//	*Packet_WorldState
-	//	*Packet_MoveInput
 	Msg           isPacket_Msg `protobuf_oneof:"msg"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -170,51 +165,6 @@ func (x *Packet) GetMapData() *MapData {
 	return nil
 }
 
-func (x *Packet) GetPlayerSpawn() *PlayerSpawn {
-	if x != nil {
-		if x, ok := x.Msg.(*Packet_PlayerSpawn); ok {
-			return x.PlayerSpawn
-		}
-	}
-	return nil
-}
-
-func (x *Packet) GetPlayerState() *PlayerState {
-	if x != nil {
-		if x, ok := x.Msg.(*Packet_PlayerState); ok {
-			return x.PlayerState
-		}
-	}
-	return nil
-}
-
-func (x *Packet) GetPlayerLeave() *PlayerLeave {
-	if x != nil {
-		if x, ok := x.Msg.(*Packet_PlayerLeave); ok {
-			return x.PlayerLeave
-		}
-	}
-	return nil
-}
-
-func (x *Packet) GetWorldState() *WorldState {
-	if x != nil {
-		if x, ok := x.Msg.(*Packet_WorldState); ok {
-			return x.WorldState
-		}
-	}
-	return nil
-}
-
-func (x *Packet) GetMoveInput() *MoveInput {
-	if x != nil {
-		if x, ok := x.Msg.(*Packet_MoveInput); ok {
-			return x.MoveInput
-		}
-	}
-	return nil
-}
-
 type isPacket_Msg interface {
 	isPacket_Msg()
 }
@@ -258,26 +208,6 @@ type Packet_MapData struct {
 	MapData *MapData `protobuf:"bytes,50,opt,name=map_data,json=mapData,proto3,oneof"`
 }
 
-type Packet_PlayerSpawn struct {
-	PlayerSpawn *PlayerSpawn `protobuf:"bytes,51,opt,name=player_spawn,json=playerSpawn,proto3,oneof"`
-}
-
-type Packet_PlayerState struct {
-	PlayerState *PlayerState `protobuf:"bytes,52,opt,name=player_state,json=playerState,proto3,oneof"`
-}
-
-type Packet_PlayerLeave struct {
-	PlayerLeave *PlayerLeave `protobuf:"bytes,53,opt,name=player_leave,json=playerLeave,proto3,oneof"`
-}
-
-type Packet_WorldState struct {
-	WorldState *WorldState `protobuf:"bytes,55,opt,name=world_state,json=worldState,proto3,oneof"`
-}
-
-type Packet_MoveInput struct {
-	MoveInput *MoveInput `protobuf:"bytes,56,opt,name=move_input,json=moveInput,proto3,oneof"` // 新加
-}
-
 func (*Packet_Id) isPacket_Msg() {}
 
 func (*Packet_Chat) isPacket_Msg() {}
@@ -296,23 +226,13 @@ func (*Packet_RegisterRequest) isPacket_Msg() {}
 
 func (*Packet_MapData) isPacket_Msg() {}
 
-func (*Packet_PlayerSpawn) isPacket_Msg() {}
-
-func (*Packet_PlayerState) isPacket_Msg() {}
-
-func (*Packet_PlayerLeave) isPacket_Msg() {}
-
-func (*Packet_WorldState) isPacket_Msg() {}
-
-func (*Packet_MoveInput) isPacket_Msg() {}
-
 var File_packets_proto protoreflect.FileDescriptor
 
 const file_packets_proto_rawDesc = "" +
 	"\n" +
 	"\rpackets.proto\x12\apackets\x1a\fcommon.proto\x1a\n" +
 	"auth.proto\x1a\n" +
-	"game.proto\"\xc5\x06\n" +
+	"game.proto\"\xa7\x04\n" +
 	"\x06Packet\x12\x1b\n" +
 	"\tsender_id\x18\x01 \x01(\x04R\bsenderId\x12$\n" +
 	"\x02id\x18\x02 \x01(\v2\x12.packets.IdMessageH\x00R\x02id\x12*\n" +
@@ -326,14 +246,7 @@ const file_packets_proto_rawDesc = "" +
 	"\rlogin_request\x18\x04 \x01(\v2\x15.packets.LoginRequestH\x00R\floginRequest\x12?\n" +
 	"\x0elogin_response\x18\x05 \x01(\v2\x16.packets.LoginResponseH\x00R\rloginResponse\x12E\n" +
 	"\x10register_request\x18\x14 \x01(\v2\x18.packets.RegisterRequestH\x00R\x0fregisterRequest\x12-\n" +
-	"\bmap_data\x182 \x01(\v2\x10.packets.MapDataH\x00R\amapData\x129\n" +
-	"\fplayer_spawn\x183 \x01(\v2\x14.packets.PlayerSpawnH\x00R\vplayerSpawn\x129\n" +
-	"\fplayer_state\x184 \x01(\v2\x14.packets.PlayerStateH\x00R\vplayerState\x129\n" +
-	"\fplayer_leave\x185 \x01(\v2\x14.packets.PlayerLeaveH\x00R\vplayerLeave\x126\n" +
-	"\vworld_state\x187 \x01(\v2\x13.packets.WorldStateH\x00R\n" +
-	"worldState\x123\n" +
-	"\n" +
-	"move_input\x188 \x01(\v2\x12.packets.MoveInputH\x00R\tmoveInputB\x05\n" +
+	"\bmap_data\x182 \x01(\v2\x10.packets.MapDataH\x00R\amapDataB\x05\n" +
 	"\x03msgB\rZ\vpkg/packetsb\x06proto3"
 
 var (
@@ -360,32 +273,22 @@ var file_packets_proto_goTypes = []any{
 	(*LoginResponse)(nil),     // 7: packets.LoginResponse
 	(*RegisterRequest)(nil),   // 8: packets.RegisterRequest
 	(*MapData)(nil),           // 9: packets.MapData
-	(*PlayerSpawn)(nil),       // 10: packets.PlayerSpawn
-	(*PlayerState)(nil),       // 11: packets.PlayerState
-	(*PlayerLeave)(nil),       // 12: packets.PlayerLeave
-	(*WorldState)(nil),        // 13: packets.WorldState
-	(*MoveInput)(nil),         // 14: packets.MoveInput
 }
 var file_packets_proto_depIdxs = []int32{
-	1,  // 0: packets.Packet.id:type_name -> packets.IdMessage
-	2,  // 1: packets.Packet.chat:type_name -> packets.ChatMessage
-	3,  // 2: packets.Packet.deny_response:type_name -> packets.DenyResponse
-	4,  // 3: packets.Packet.ok_response:type_name -> packets.OkResponse
-	5,  // 4: packets.Packet.disconnect:type_name -> packets.DisconnectMessage
-	6,  // 5: packets.Packet.login_request:type_name -> packets.LoginRequest
-	7,  // 6: packets.Packet.login_response:type_name -> packets.LoginResponse
-	8,  // 7: packets.Packet.register_request:type_name -> packets.RegisterRequest
-	9,  // 8: packets.Packet.map_data:type_name -> packets.MapData
-	10, // 9: packets.Packet.player_spawn:type_name -> packets.PlayerSpawn
-	11, // 10: packets.Packet.player_state:type_name -> packets.PlayerState
-	12, // 11: packets.Packet.player_leave:type_name -> packets.PlayerLeave
-	13, // 12: packets.Packet.world_state:type_name -> packets.WorldState
-	14, // 13: packets.Packet.move_input:type_name -> packets.MoveInput
-	14, // [14:14] is the sub-list for method output_type
-	14, // [14:14] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	1, // 0: packets.Packet.id:type_name -> packets.IdMessage
+	2, // 1: packets.Packet.chat:type_name -> packets.ChatMessage
+	3, // 2: packets.Packet.deny_response:type_name -> packets.DenyResponse
+	4, // 3: packets.Packet.ok_response:type_name -> packets.OkResponse
+	5, // 4: packets.Packet.disconnect:type_name -> packets.DisconnectMessage
+	6, // 5: packets.Packet.login_request:type_name -> packets.LoginRequest
+	7, // 6: packets.Packet.login_response:type_name -> packets.LoginResponse
+	8, // 7: packets.Packet.register_request:type_name -> packets.RegisterRequest
+	9, // 8: packets.Packet.map_data:type_name -> packets.MapData
+	9, // [9:9] is the sub-list for method output_type
+	9, // [9:9] is the sub-list for method input_type
+	9, // [9:9] is the sub-list for extension type_name
+	9, // [9:9] is the sub-list for extension extendee
+	0, // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_packets_proto_init() }
@@ -406,11 +309,6 @@ func file_packets_proto_init() {
 		(*Packet_LoginResponse)(nil),
 		(*Packet_RegisterRequest)(nil),
 		(*Packet_MapData)(nil),
-		(*Packet_PlayerSpawn)(nil),
-		(*Packet_PlayerState)(nil),
-		(*Packet_PlayerLeave)(nil),
-		(*Packet_WorldState)(nil),
-		(*Packet_MoveInput)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

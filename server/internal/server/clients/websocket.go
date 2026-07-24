@@ -5,9 +5,7 @@ import (
 	"log"
 	"net/http"
 	"server/internal/server"
-	"server/internal/server/game"
 	"server/internal/server/interfaces"
-	"server/internal/server/objects"
 	"server/internal/server/states"
 	"server/pkg/packets"
 	"sync"
@@ -186,12 +184,4 @@ func (c *WebSocketClient) Shutdown(reason string) {
 		c.conn.Close()
 		close(c.sendChan)
 	})
-}
-
-func (c *WebSocketClient) GetGameMap() *game.GameMap {
-	return c.hub.GameMap
-}
-
-func (c *WebSocketClient) GetGameObject() *objects.GameObject {
-	return c.hub.GameObject
 }

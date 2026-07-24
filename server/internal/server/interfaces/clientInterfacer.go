@@ -3,8 +3,6 @@ package interfaces
 import (
 	"context"
 	"server/internal/server/db"
-	"server/internal/server/game"
-	"server/internal/server/objects"
 	"server/pkg/packets"
 )
 
@@ -37,7 +35,4 @@ type ClientInterfacer interface {
 	SetState(newState ClientStateHandler)
 
 	DbTx() *DbTx
-
-	GetGameMap() *game.GameMap
-	GetGameObject() *objects.GameObject
 }

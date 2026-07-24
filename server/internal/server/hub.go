@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"server/internal/server/db"
-	"server/internal/server/game"
 	"server/internal/server/interfaces"
 	"server/internal/server/objects"
 	"server/pkg/packets"
@@ -24,9 +23,6 @@ type Hub struct {
 	RegisterChan   chan interfaces.ClientInterfacer
 	UnRegisterChan chan interfaces.ClientInterfacer
 	dbPool         *sql.DB
-
-	GameMap    *game.GameMap // ✅ 新增地图模块
-	GameObject *objects.GameObject
 }
 
 func (h *Hub) NewDbTx() *interfaces.DbTx {
@@ -40,23 +36,11 @@ func NewHub(dbPool *sql.DB) *Hub {
 
 	hub := &Hub{
 		Clients: objects.NewSyncIDMap[interfaces.ClientInterfacer](),
-		GameObject: &objects.GameObject{
-			Users: objects.NewSyncIDMap[*objects.User](),
-		},
 
 		BroadcastChan:  make(chan *packets.Packet),
 		RegisterChan:   make(chan interfaces.ClientInterfacer),
 		UnRegisterChan: make(chan interfaces.ClientInterfacer),
 		dbPool:         dbPool,
-	}
-
-	gameMap, err := game.LoadMap("resources/map1.json")
-	if err != nil {
-		log.Printf("加载地图失败: %v", err)
-	} else {
-		hub.GameMap = gameMap
-		log.Printf("地图加载成功: %dx%d, 出生点: %d",
-			gameMap.Width, gameMap.Height, len(gameMap.SpawnPoints))
 	}
 
 	return hub

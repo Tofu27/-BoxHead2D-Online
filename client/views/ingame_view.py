@@ -61,7 +61,9 @@ class InGameView(arcade.View):
         damping = 0.01
         gravity = (0, 0)
         self.physics_engine = PymunkPhysicsEngine(gravity, damping)
-        self.player = Player(-1000, -1000, self.physics_engine)
+        self.player = Player(300, 300, self.physics_engine)
+
+
 
         self.physics_engine.add_sprite(
             self.player,
@@ -117,44 +119,9 @@ class InGameView(arcade.View):
         self.player.update()
         self.scroll_to_player()
 
-        # 定期上报状态
-        self._report_timer += delta_time
-        if self._report_timer >= 1.0 / 1:  # 每秒 1 次
-            self._report_timer = 0
-            self._send_player_state()
-
     def _on_packet_received(self, pkt: packets_pb2.Packet):
         print("接收到消息:", pkt)
-        if pkt.HasField('player_spawn'):
-            if pkt.sender_id != self.g.client_id:
-                return
-            
-            player_spawn = pkt.player_spawn
-            self.player.pos.x = player_spawn.x
-            self.player.pos.y = player_spawn.y
-            self.player.health = player_spawn.health
-            self.player.max_health = player_spawn.max_health
-            self.player.speed = player_spawn.speed
-
-            self.physics_engine.set_position(self.player, (player_spawn.x, player_spawn.y))
     
-    def _send_player_state(self):
-        """向服务端上报当前玩家的完整状态"""
-        ws = self.g.ws
-        if not ws or not ws.connected:
-            return
-        
-        if not self.player:
-            return
-
-        pkt = packets_pb2.Packet()
-        report = pkt.player_spawn
-        report.x = self.player.pos.x
-        report.y = self.player.pos.y
-        report.health = self.player.health
-        report.max_health = self.player.max_health
-        report.speed = self.player.speed
-        ws.send(pkt)
 
     def scroll_to_player(self) -> None:
         """

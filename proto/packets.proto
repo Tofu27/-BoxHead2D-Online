@@ -26,11 +26,5 @@ message Packet {
 
         // ===== Game =====
         MapData map_data = 50;
-        PlayerSpawn player_spawn = 51;
-        PlayerState player_state = 52;
-        PlayerLeave player_leave = 53;
-        WorldState world_state = 55;
-
-        MoveInput move_input = 56; // 新加
     }
 }

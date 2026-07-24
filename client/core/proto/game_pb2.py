@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\ngame.proto\x12\x07packets\"\xbd\x01\n\x07MapData\x12\r\n\x05width\x18\x01 \x01(\r\x12\x0e\n\x06height\x18\x02 \x01(\r\x12\x12\n\ntile_width\x18\x03 \x01(\r\x12\x13\n\x0btile_height\x18\x04 \x01(\r\x12\x16\n\x0e\x63ollision_grid\x18\x05 \x03(\r\x12\x12\n\ngrid_width\x18\x06 \x01(\r\x12\x13\n\x0bgrid_height\x18\x07 \x01(\r\x12)\n\x0cspawn_points\x18\x08 \x03(\x0b\x32\x13.packets.SpawnPoint\"\"\n\nSpawnPoint\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\"{\n\x0bPlayerSpawn\x12\x11\n\tplayer_id\x18\x01 \x01(\x04\x12\x10\n\x08username\x18\x02 \x01(\t\x12\t\n\x01x\x18\x03 \x01(\x02\x12\t\n\x01y\x18\x04 \x01(\x02\x12\x0e\n\x06health\x18\x05 \x01(\x02\x12\x12\n\nmax_health\x18\x06 \x01(\x02\x12\r\n\x05speed\x18\x07 \x01(\x02\"{\n\x0bPlayerState\x12\x11\n\tplayer_id\x18\x01 \x01(\x04\x12\t\n\x01x\x18\x02 \x01(\x02\x12\t\n\x01y\x18\x03 \x01(\x02\x12\x0e\n\x06health\x18\x04 \x01(\x02\x12\x11\n\tis_moving\x18\x05 \x01(\x08\x12\x11\n\tdirection\x18\x06 \x01(\x02\x12\r\n\x05speed\x18\x07 \x01(\x02\" \n\x0bPlayerLeave\x12\x11\n\tplayer_id\x18\x01 \x01(\x04\"3\n\nWorldState\x12%\n\x07players\x18\x01 \x03(\x0b\x32\x14.packets.PlayerState\"I\n\tMoveInput\x12\r\n\x05\x64ir_x\x18\x01 \x01(\x02\x12\r\n\x05\x64ir_y\x18\x02 \x01(\x02\x12\x11\n\ttimestamp\x18\x03 \x01(\x04\x12\x0b\n\x03seq\x18\x04 \x01(\rB\rZ\x0bpkg/packetsb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\ngame.proto\x12\x07packets\"\xbd\x01\n\x07MapData\x12\r\n\x05width\x18\x01 \x01(\r\x12\x0e\n\x06height\x18\x02 \x01(\r\x12\x12\n\ntile_width\x18\x03 \x01(\r\x12\x13\n\x0btile_height\x18\x04 \x01(\r\x12\x16\n\x0e\x63ollision_grid\x18\x05 \x03(\r\x12\x12\n\ngrid_width\x18\x06 \x01(\r\x12\x13\n\x0bgrid_height\x18\x07 \x01(\r\x12)\n\x0cspawn_points\x18\x08 \x03(\x0b\x32\x13.packets.SpawnPoint\"\"\n\nSpawnPoint\x12\t\n\x01x\x18\x01 \x01(\x02\x12\t\n\x01y\x18\x02 \x01(\x02\x42\rZ\x0bpkg/packetsb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -36,14 +36,4 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_MAPDATA']._serialized_end=213
   _globals['_SPAWNPOINT']._serialized_start=215
   _globals['_SPAWNPOINT']._serialized_end=249
-  _globals['_PLAYERSPAWN']._serialized_start=251
-  _globals['_PLAYERSPAWN']._serialized_end=374
-  _globals['_PLAYERSTATE']._serialized_start=376
-  _globals['_PLAYERSTATE']._serialized_end=499
-  _globals['_PLAYERLEAVE']._serialized_start=501
-  _globals['_PLAYERLEAVE']._serialized_end=533
-  _globals['_WORLDSTATE']._serialized_start=535
-  _globals['_WORLDSTATE']._serialized_end=586
-  _globals['_MOVEINPUT']._serialized_start=588
-  _globals['_MOVEINPUT']._serialized_end=661
 # @@protoc_insertion_point(module_scope)
