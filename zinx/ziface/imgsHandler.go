@@ -1,5 +1,7 @@
 package ziface
 
+import "zinx/ziface"
+
 /*
 	消息管理抽象层
 */
@@ -8,4 +10,13 @@ type IMsgHandle interface {
 	DoMsgHandler(request IRequest)
 	// 为消息添加具体的处理逻辑
 	AddRouter(msgId uint32, router IRouter)
+
+	// 启动Worker工作池
+	StartWorkerPool()
+
+	// 启动一个Worker工作流程
+	StartOneWorker()
+
+	// 将消息发送给消息任务队列
+	SendMsgToTaskQueue(request ziface.IRequest)
 }
