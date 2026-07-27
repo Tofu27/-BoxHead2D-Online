@@ -1,7 +1,9 @@
 package znet
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"net"
 	"zinx/ziface"
 )
@@ -47,18 +49,37 @@ func (c *Connection) StartReader() {
 	}()
 
 	for {
-		// 读取客户端的数据到buf中，最大512字节
-		buf := make([]byte, 512)
-		_, err := c.Conn.Read(buf)
-		if err != nil {
-			fmt.Println("接收buf错误: ", err)
-			continue
+		// 创建一个拆包解包的对象
+		dp := NewDataPack()
+		// 读取客户端的Msg Head 二进制流 8个字节
+		headData := make([]byte, dp.GetHeadLen())
+		if _, err := io.ReadFull(c.Conn, headData); err != nil {
+			fmt.Println("读取包头信息失败: ", err)
+			break
 		}
+
+		// 拆包，得到MsgId和MsgDataLen 放在Msg消息中
+		msg, err := dp.Unpack(headData)
+		if err != nil {
+			fmt.Println("解包失败: ", err)
+			break
+		}
+
+		// 根据 dataLen 再次读取Data，放在msg.Data中
+		var data []byte
+		if msg.GetMsgLen() > 0 {
+			data = make([]byte, msg.GetMsgLen())
+			if _, err := io.ReadFull(c.GetTCPConnection(), data); err != nil {
+				fmt.Println("读取包数据失败: ", err)
+				break
+			}
+		}
+		msg.SetData(data)
 
 		// 得到当前Conn数据的request请求数据
 		req := &Request{
 			conn: c,
-			data: buf,
+			msg:  msg,
 		}
 
 		// 执行注册的路由方法
@@ -74,7 +95,7 @@ func (c *Connection) StartReader() {
 
 // 启动连接  让当前连接准备开始工作
 func (c *Connection) Start() {
-	fmt.Println("连接启动...ConnID = ", c.ConnID)
+	fmt.Println("连接启动... ConnID = ", c.ConnID)
 
 	// 启动从当前连接读取数据的业务
 	go c.StartReader()
@@ -84,7 +105,7 @@ func (c *Connection) Start() {
 
 // 停止连接  结束当前连接的工作
 func (c *Connection) Stop() {
-	fmt.Println("连接停止...ConnID = ", c.ConnID)
+	fmt.Println("连接停止... ConnID = ", c.ConnID)
 
 	// 如果连接已经关闭
 	if c.isClosed == true {
@@ -116,5 +137,26 @@ func (c *Connection) RemoteAddr() net.Addr {
 
 // 发送数据，将数据发送给远程的客户端
 func (c *Connection) Send(data []byte) error {
+	return nil
+}
+
+// 提供一个SendMsg方法 将我们要发送给客户端的数据，先进行封包，再发送
+func (c *Connection) SendMsg(msgId uint32, data []byte) error {
+	if c.isClosed == true {
+		return errors.New("连接已经关闭")
+	}
+
+	// 将data进行封包 MsgDataLen/MsgID Data
+	dp := NewDataPack()
+
+	binaryMsg, err := dp.Pack(NewMsgPackage(msgId, data))
+	if err != nil {
+		return fmt.Errorf("封包 msdId: %d  失败: %v", msgId, err)
+	}
+
+	if _, err := c.Conn.Write(binaryMsg); err != nil {
+		return fmt.Errorf("写入 msgId: %d 错误: %v", msgId, err)
+	}
+
 	return nil
 }
