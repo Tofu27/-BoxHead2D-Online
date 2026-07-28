@@ -1,7 +1,5 @@
 package ziface
 
-import "zinx/ziface"
-
 /*
 	消息管理抽象层
 */
@@ -15,8 +13,8 @@ type IMsgHandle interface {
 	StartWorkerPool()
 
 	// 启动一个Worker工作流程
-	StartOneWorker()
+	StartOneWorker(workerID int, taskQueue chan IRequest)
 
 	// 将消息发送给消息任务队列
-	SendMsgToTaskQueue(request ziface.IRequest)
+	SendMsgToTaskQueue(request IRequest)
 }

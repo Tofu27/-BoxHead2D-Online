@@ -1,7 +1,8 @@
-package utils
+package zconf
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"zinx/ziface"
 )
@@ -40,12 +41,24 @@ var GlobalObject *GlobalObj
 func (g *GlobalObj) Reload() {
 	data, err := os.ReadFile("conf/zinx.json")
 	if err != nil {
-		panic(err)
+		// 兼容性处理：文件不存在或无法读取时，不 panic，而是使用默认值并提示
+		if os.IsNotExist(err) {
+			fmt.Println("提示: conf/zinx.json 不存在，使用代码中的默认配置")
+		} else {
+			fmt.Printf("警告: 读取配置文件失败 (%v)，使用默认配置\n", err)
+		}
+		return
 	}
+
+	if len(data) == 0 {
+		fmt.Println("提示: conf/zinx.json 为空文件，使用默认配置")
+		return
+	}
+
 	// 将 json 文件数据解析到 struct 中
 	err = json.Unmarshal(data, &GlobalObject)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("错误: conf/zinx.json 格式解析失败: %v", err))
 	}
 }
 

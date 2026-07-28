@@ -2,8 +2,7 @@ package znet
 
 import (
 	"fmt"
-	"strconv"
-	"zinx/utils"
+	"zinx/zconf"
 	"zinx/ziface"
 )
 
@@ -23,9 +22,10 @@ type MsgHandler struct {
 func NewMsgHandler() *MsgHandler {
 	mh := &MsgHandler{
 		Apis:           make(map[uint32]ziface.IRouter),
-		WorkerPoolSize: utils.GlobalObject.WorkerPoolSize, // 从全局配置中获取
-		TaskQueue:      make([]chan ziface.IRequest, utils.GlobalObject.WorkerPoolSize),
+		WorkerPoolSize: zconf.GlobalObject.WorkerPoolSize, // 从全局配置中获取
 	}
+
+	mh.TaskQueue = make([]chan ziface.IRequest, zconf.GlobalObject.WorkerPoolSize)
 
 	return mh
 }
@@ -50,7 +50,8 @@ func (mh *MsgHandler) AddRouter(msgId uint32, router ziface.IRouter) {
 	// 判断当前msg绑定的API处理方法是否已经存在
 	if _, ok := mh.Apis[msgId]; ok {
 		// Id已经注册
-		panic("重复注册的api, msgID = " + strconv.Itoa(int(msgId)))
+		msgErr := fmt.Sprintf("重复注册的API , msgID = %+v\n", msgId)
+		panic(msgErr)
 	}
 	// 添加msg与API的绑定关系
 	mh.Apis[msgId] = router
@@ -64,7 +65,7 @@ func (mh *MsgHandler) StartWorkerPool() {
 	for i := 0; i < int(mh.WorkerPoolSize); i++ {
 		// 一个worker被启动
 		// 当前的worker对应的channel消息队列 开辟空间 第0个worker就用第0个channel
-		mh.TaskQueue[i] = make(chan ziface.IRequest, utils.GlobalObject.MaxWorkerTaskLen)
+		mh.TaskQueue[i] = make(chan ziface.IRequest, zconf.GlobalObject.MaxWorkerTaskLen)
 		// 启动当前的Worker, 阻塞等待消息从channel传递进来
 		go mh.StartOneWorker(i, mh.TaskQueue[i])
 	}
@@ -77,7 +78,12 @@ func (mh *MsgHandler) StartOneWorker(workerID int, taskQueue chan ziface.IReques
 	//阻塞等待消息对应消息队列的消息
 	for {
 		select {
-		case request := <-taskQueue:
+		case request, ok := <-taskQueue:
+			if !ok {
+				fmt.Println("taskQueue 已经关闭, WOrkerID = ", workerID)
+				return
+			}
+
 			// 如果有消息过来，出列的就是一个客户端的Request，执行当前Request所绑定的业务
 			mh.DoMsgHandler(request)
 		}
@@ -88,6 +94,26 @@ func (mh *MsgHandler) StartOneWorker(workerID int, taskQueue chan ziface.IReques
 // 将消息交给TaskQueue，由Worker进行处理
 func (mh *MsgHandler) SendMsgToTaskQueue(request ziface.IRequest) {
 	// 将消息平均分配给不同的worker
+	// 根据客户端建立的ConnID来进行分配
+	workerID := request.GetConnection().GetConnID() % mh.WorkerPoolSize
+	fmt.Println("添加 ConnID = ", request.GetConnection().GetConnID(),
+		" reqeust MsgID = ", request.GetMsgID(), " 到 WorkerID = ", workerID)
 
 	// 将消息发送给对应的worker的TaskQueue
+	mh.TaskQueue[workerID] <- request
+}
+
+// 占用workerID
+func useWorker(conn ziface.IConnection) uint32 {
+	var workerId uint32
+
+	mh, _ := conn.GetMsgHandler().(*MsgHandler)
+	if mh == nil {
+		fmt.Println("useWorker 报错：获取消息处理器失败, 消息处理为空")
+		return 0
+	}
+
+	workerId = uint32(conn.GetConnID() % mh.WorkerPoolSize)
+
+	return workerId
 }

@@ -11,8 +11,6 @@ type PingRouter struct {
 }
 
 func (this *PingRouter) Handle(request ziface.IRequest) {
-	fmt.Println("路由Handle")
-
 	// 先读取客户端数据，再回写ping
 	fmt.Println("接收来自客户端：msgID = ", request.GetMsgID(),
 		", data = ", string(request.GetMsgData()))
@@ -38,8 +36,22 @@ func (this *HelloRouter) Handle(request ziface.IRequest) {
 	}
 }
 
+func DoConnectionBegin(conn ziface.IConnection) {
+	fmt.Println("连接创建之后的回调函数调用了")
+	conn.SendMsg(202, []byte("DoConnectionBegin"))
+
+	conn.SetProperty("name", "阿三")
+	conn.SetProperty("Home", "asd")
+}
+func DoConnectionLose(conn ziface.IConnection) {
+	fmt.Println("连接断开之前的回调函数调用了")
+}
+
 func main() {
 	s := znet.NewServer("zinx")
+
+	s.SetOnConnStart(DoConnectionBegin)
+	s.SetOnConnStop(DoConnectionLose)
 
 	s.AddRouter(0, &PingRouter{})
 	s.AddRouter(1, &HelloRouter{})

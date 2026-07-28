@@ -1,10 +1,13 @@
 package znet
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"net"
+	"sync"
+	"zinx/zconf"
 	"zinx/ziface"
 )
 
@@ -18,28 +21,50 @@ type Connection struct {
 	// 连接的ID
 	ConnID uint32
 
-	// 当前连接的状态
-	isClosed bool
+	// 负责处理该连接的workerid
+	workerID uint32
 
-	// 告知当前连接已经退出/停止 channel (由读协程告诉写协程退出)
-	ExitChan chan bool
+	// (告知该连接已经退出/停止的channel)
+	ctx    context.Context
+	cancel context.CancelFunc
 
-	// 无缓冲通道 用于读、写协程之间的消息通信
-	msgChan chan []byte
+	// (有缓冲管道，用于读、写两个goroutine之间的消息通信)
+	msgBuffChan chan []byte
 
-	// 消息的管理MsgId 和 对应的处理业务API关系
-	MsgHandler ziface.IMsgHandle
+	// (消息管理MsgID和对应处理方法的消息管理模块)
+	msgHandler ziface.IMsgHandle
+
+	// (当前连接是属于哪个Connection Manager的)
+	connManager ziface.IConnManager
+
+	// (连接属性)
+	property map[string]interface{}
+
+	// (保护当前property的锁)
+	propertyLock sync.RWMutex
+
+	// (当前连接创建时Hook函数)
+	onConnStart func(conn ziface.IConnection)
+
+	// (当前连接断开时的Hook函数)
+	onConnStop func(conn ziface.IConnection)
 }
 
-func NewConnection(conn *net.TCPConn, connID uint32, msgHandler ziface.IMsgHandle) *Connection {
+func NewConnection(server ziface.IServer, conn *net.TCPConn, connID uint32) *Connection {
 	c := &Connection{
-		Conn:       conn,
-		ConnID:     connID,
-		MsgHandler: msgHandler,
-		isClosed:   false,
-		msgChan:    make(chan []byte),
-		ExitChan:   make(chan bool, 1),
+		Conn:        conn,
+		ConnID:      connID,
+		msgBuffChan: make(chan []byte, 1024),
+		property:    make(map[string]interface{}),
 	}
+
+	c.msgHandler = server.GetMsgHandler()
+	c.connManager = server.GetConnMgr()
+	c.onConnStart = server.GetOnConnStart()
+	c.onConnStop = server.GetOnConnStop()
+
+	// (将新创建的Conn添加到连接管理中)
+	server.GetConnMgr().Add(c)
 
 	return c
 }
@@ -53,41 +78,53 @@ func (c *Connection) StartReader() {
 	}()
 
 	for {
-		// 创建一个拆包解包的对象
-		dp := NewDataPack()
-		// 读取客户端的Msg Head 二进制流 8个字节
-		headData := make([]byte, dp.GetHeadLen())
-		if _, err := io.ReadFull(c.Conn, headData); err != nil {
-			fmt.Println("读取包头信息失败: ", err)
-			break
-		}
+		select {
+		case <-c.ctx.Done():
+			return
+		default:
+			// 创建一个拆包解包的对象
+			dp := NewDataPack()
+			// 读取客户端的Msg Head 二进制流 8个字节
+			headData := make([]byte, dp.GetHeadLen())
+			if _, err := io.ReadFull(c.Conn, headData); err != nil {
+				fmt.Println("读取包头信息失败: ", err)
+				c.Stop()
+			}
 
-		// 拆包，得到MsgId和MsgDataLen 放在Msg消息中
-		msg, err := dp.Unpack(headData)
-		if err != nil {
-			fmt.Println("解包失败: ", err)
-			break
-		}
-
-		// 根据 dataLen 再次读取Data，放在msg.Data中
-		var data []byte
-		if msg.GetMsgLen() > 0 {
-			data = make([]byte, msg.GetMsgLen())
-			if _, err := io.ReadFull(c.GetTCPConnection(), data); err != nil {
-				fmt.Println("读取包数据失败: ", err)
+			// 拆包，得到MsgId和MsgDataLen 放在Msg消息中
+			msg, err := dp.Unpack(headData)
+			if err != nil {
+				fmt.Println("解包失败: ", err)
 				break
 			}
-		}
-		msg.SetData(data)
 
-		// 得到当前Conn数据的request请求数据
-		req := &Request{
-			conn: c,
-			msg:  msg,
+			// 根据 dataLen 再次读取Data，放在msg.Data中
+			var data []byte
+			if msg.GetMsgLen() > 0 {
+				data = make([]byte, msg.GetMsgLen())
+				if _, err := io.ReadFull(c.GetTCPConnection(), data); err != nil {
+					fmt.Println("读取包数据失败: ", err)
+					break
+				}
+			}
+			msg.SetData(data)
+
+			// 得到当前Conn数据的request请求数据
+			req := &Request{
+				conn: c,
+				msg:  msg,
+			}
+
+			if zconf.GlobalObject.WorkerPoolSize > 0 {
+				// 已经开启了工作池机制，将消息发送给Worker工作池处理
+				c.msgHandler.SendMsgToTaskQueue(req)
+			} else {
+				// 从路由中 根据绑定好的MsgId 找到对应处理Api业务执行
+				go c.msgHandler.DoMsgHandler(req)
+			}
+
 		}
 
-		// 从路由中 根据绑定好的MsgId 找到对应处理Api业务执行
-		go c.MsgHandler.DoMsgHandler(req)
 	}
 }
 
@@ -101,15 +138,15 @@ func (c *Connection) StartWriter() {
 	// 阻塞等待channel的消息, 读到消息并写给客户端
 	for {
 		select {
-		case data := <-c.msgChan:
+		case <-c.ctx.Done():
+			return
+
+		case data := <-c.msgBuffChan:
 			// 有数据要写给客户端
 			if _, err := c.Conn.Write(data); err != nil {
 				fmt.Println("发送消息失败: ", err)
 				return
 			}
-		case <-c.ExitChan:
-			// Reader 已经退出，此时 Writer 也要退出
-			return
 		}
 	}
 }
@@ -118,9 +155,16 @@ func (c *Connection) StartWriter() {
 func (c *Connection) Start() {
 	fmt.Println("连接启动... ConnID = ", c.ConnID)
 
+	c.ctx, c.cancel = context.WithCancel(context.Background())
+
+	// (按照用户传递进来的创建连接时需要处理的业务，执行钩子方法)
+	c.callOnConnStart()
+
+	// 占用workerid
+	c.workerID = useWorker(c)
+
 	// 启动从当前连接读取数据的业务
 	go c.StartReader()
-	// 启动从当前连接写数据的业务
 	go c.StartWriter()
 
 }
@@ -129,24 +173,28 @@ func (c *Connection) Start() {
 func (c *Connection) Stop() {
 	fmt.Println("连接停止... ConnID = ", c.ConnID)
 
-	// 如果连接已经关闭
-	if c.isClosed == true {
-		return
+	if c.cancel != nil {
+		c.cancel()
 	}
 
-	c.isClosed = true
+	// 调用开发者注册的 销毁链接之前 需要执行的业务Hook函数
+	c.callOnConnStop()
 
 	// 关闭 socket 连接
-	c.Conn.Close()
-	// 告知 Writer 关闭
-	c.ExitChan <- true
+	if c.Conn != nil {
+		_ = c.Conn.Close()
+	}
 
-	close(c.ExitChan)
-	close(c.msgChan)
+	// 将当前连接从ConnMgr中移除
+	if c.connManager != nil {
+		c.connManager.Remove(c)
+	}
+
+	close(c.msgBuffChan)
 }
 
 // 获取当前连接绑定的 socket coon
-func (c *Connection) GetTCPConnection() *net.TCPConn {
+func (c *Connection) GetTCPConnection() net.Conn {
 	return c.Conn
 }
 
@@ -167,9 +215,6 @@ func (c *Connection) Send(data []byte) error {
 
 // 提供一个SendMsg方法 将我们要发送给客户端的数据，先进行封包，再发送
 func (c *Connection) SendMsg(msgId uint32, data []byte) error {
-	if c.isClosed == true {
-		return errors.New("连接已经关闭")
-	}
 
 	// 将data进行封包 MsgDataLen/MsgID Data
 	dp := NewDataPack()
@@ -180,7 +225,61 @@ func (c *Connection) SendMsg(msgId uint32, data []byte) error {
 	}
 
 	// 将数据写入管道
-	c.msgChan <- binaryMsg
+	c.msgBuffChan <- binaryMsg
 
 	return nil
+}
+
+// 设置连接属性
+func (c *Connection) SetProperty(key string, value interface{}) {
+	c.propertyLock.Lock()
+	defer c.propertyLock.Unlock()
+
+	c.property[key] = value
+}
+
+// 获取连接属性
+func (c *Connection) GetProperty(key string) (interface{}, error) {
+	c.propertyLock.RLock()
+	defer c.propertyLock.RUnlock()
+
+	if value, ok := c.property[key]; ok {
+		return value, nil
+	}
+
+	return nil, errors.New("连接属性不存在")
+}
+
+// 移除连接属性
+func (c *Connection) RemoveProperty(key string) {
+	c.propertyLock.Lock()
+	defer c.propertyLock.Unlock()
+
+	delete(c.property, key)
+}
+
+func (c *Connection) callOnConnStart() {
+	if c.onConnStart != nil {
+		fmt.Println("CallOnConnStart 执行")
+		c.onConnStart(c)
+	}
+}
+
+func (c *Connection) callOnConnStop() {
+	if c.onConnStop != nil {
+		fmt.Println("CallOnConnStop 执行")
+		c.onConnStop(c)
+	}
+}
+
+func (c *Connection) Context() context.Context {
+	return c.ctx
+}
+
+func (c *Connection) GetMsgHandler() ziface.IMsgHandle {
+	return c.msgHandler
+}
+
+func (c *Connection) isClosed() bool {
+	return c.ctx == nil || c.ctx.Err() != nil
 }
