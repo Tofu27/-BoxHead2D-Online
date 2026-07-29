@@ -88,14 +88,14 @@ func (c *Connection) StartReader() {
 			headData := make([]byte, dp.GetHeadLen())
 			if _, err := io.ReadFull(c.Conn, headData); err != nil {
 				fmt.Println("读取包头信息失败: ", err)
-				c.Stop()
+				return
 			}
 
 			// 拆包，得到MsgId和MsgDataLen 放在Msg消息中
 			msg, err := dp.Unpack(headData)
 			if err != nil {
 				fmt.Println("解包失败: ", err)
-				break
+				return
 			}
 
 			// 根据 dataLen 再次读取Data，放在msg.Data中
@@ -104,7 +104,7 @@ func (c *Connection) StartReader() {
 				data = make([]byte, msg.GetMsgLen())
 				if _, err := io.ReadFull(c.GetTCPConnection(), data); err != nil {
 					fmt.Println("读取包数据失败: ", err)
-					break
+					return
 				}
 			}
 			msg.SetData(data)
@@ -124,7 +124,6 @@ func (c *Connection) StartReader() {
 			}
 
 		}
-
 	}
 }
 
