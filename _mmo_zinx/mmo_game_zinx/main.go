@@ -1,0 +1,5 @@
+package mmogamezinx
+
+func main() {
+
+}

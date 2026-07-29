@@ -70,5 +70,5 @@ func (g *Grid) GetPlayerIds() (playerIds []int) {
 
 // 调试用 打印出格子的基本信息
 func (g *Grid) String() string {
-	return fmt.Sprintf("Grid id: %d, minX: %d, maxX: %d, minY: %d, maxY: %d, playerIDs: %v", g.GID, g.MinX, g.MaxX, g.MinY, g.MaxY, g.playerIDs)
+	return fmt.Sprintf("Grid id: %d, minX: %d, maxX: %d, minY: %d, maxY: %d, playerIDs: %v\n", g.GID, g.MinX, g.MaxX, g.MinY, g.MaxY, g.playerIDs)
 }
